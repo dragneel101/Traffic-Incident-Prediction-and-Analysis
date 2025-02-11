@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Predictor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h2>Traffic Predictor</h2>
+    <form id="prediction-form">
+        <label>Occurrence Hour: <input type="number" id="occ_hour" required></label><br>
+        <label>Day of Week: <input type="number" id="occ_dow" required></label><br>
+        <label>Month: <input type="number" id="occ_month" required></label><br>
+        <label>Automobile: <input type="number" id="automobile" required></label><br>
+        <label>Motorcycle: <input type="number" id="motorcycle" required></label><br>
+        <label>Passenger: <input type="number" id="passenger" required></label><br>
+        <label>Bicycle: <input type="number" id="bicycle" required></label><br>
+        <label>Pedestrian: <input type="number" id="pedestrian" required></label><br>
+        <button type="submit">Predict</button>
+    </form>
+    <h3 id="result"></h3>
+
+    <script src="script.js"></script>
+</body>
+</html>
