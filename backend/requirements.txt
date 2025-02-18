@@ -5,4 +5,3 @@ numpy
 scikit-learn
 CORS
 flask_cors
-pickle
