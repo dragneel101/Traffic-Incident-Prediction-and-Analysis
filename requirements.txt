@@ -1,0 +1,9 @@
+cat <<EOT > requirements.txt
+flask
+geopandas
+pandas
+numpy
+scikit-learn
+requests
+flask-cors
+EOT
