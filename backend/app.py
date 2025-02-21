@@ -3,69 +3,71 @@ import geopandas as gpd
 import pandas as pd
 import numpy as np
 import pickle
+import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import NearestNeighbors
 
-# File paths for the GeoJSON dataset and trained model
-print("[INFO] Loading FIle paths")
-geojson_file = "./Traffic_Collisions_Open_Data.geojson"
+# File paths for data and model
+data_file = "./Traffic_Collisions_Open_Data.geojson"
 model_file = "./model.pkl"
+MAPBOX_API_KEY = "sk.eyJ1Ijoia2hhaXR1ciIsImEiOiJjbTdlZGc1ZHEwY3RoMmtvZWVteTd3N2FoIn0.YKCU9Yip1CMYgyI4kH-4-Q"
+MAPBOX_GEOCODE_URL = "https://api.mapbox.com/geocoding/v5/mapbox.places/{}.json"
 
+# Function to get coordinates from an address using Mapbox API
+def get_coordinates(address):
+    print(f"[INFO] Fetching coordinates for address: {address}")
+    url = MAPBOX_GEOCODE_URL.format(address.replace(" ", "%20"))
+    params = {"access_token": MAPBOX_API_KEY, "limit": 1, "country": "CA"}  # Restricting to Canada
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        data = response.json()
+        if data["features"]:
+            location = data["features"][0]["center"]
+            print(f"[SUCCESS] Coordinates found: {location[1]}, {location[0]}")
+            return float(location[1]), float(location[0])
+    
+    print("[ERROR] Failed to fetch coordinates. Response:", response.text)
+    return None, None
+
+# Function to load GeoJSON data if the model does not exist
 def load_geojson():
-    """Loads the GeoJSON dataset if it exists."""
+    print("[INFO] Checking for existing model file...")
+    if os.path.exists(model_file):
+        print("[INFO] Model file found. Skipping GeoJSON loading.")
+        return None
+    
     print("[INFO] Checking if GeoJSON file exists...")
-    if not os.path.exists(geojson_file):
-        print(f"[ERROR] GeoJSON file '{geojson_file}' not found.")
+    if not os.path.exists(data_file):
+        print("[ERROR] GeoJSON file not found.")
         return None
     try:
         print("[INFO] Loading GeoJSON file...")
-        df_geojson = gpd.read_file(geojson_file)
-        print(f"[SUCCESS] GeoJSON Data Loaded: {df_geojson.shape[0]} records")
-        return df_geojson
+        df = gpd.read_file(data_file)
+        print(f"[SUCCESS] GeoJSON Data Loaded: {df.shape[0]} records")
+        return df[['geometry', 'OCC_HOUR', 'OCC_DOW', 'OCC_MONTH']]
     except Exception as e:
         print(f"[ERROR] Error loading GeoJSON: {e}")
         return None
 
-def train_and_save_model(df_geojson):
-    """Trains and saves the machine learning model, or loads an existing one."""
-    print("[INFO] Checking if model already exists...")
+# Function to train and save the Nearest Neighbors model
+def train_spatial_model(df):
     if os.path.exists(model_file):
         print("[INFO] Loading existing model...")
         with open(model_file, 'rb') as f:
             return pickle.load(f)
     
-    if df_geojson is None or df_geojson.empty:
+    if df is None or df.empty:
         print("[ERROR] No data available for training.")
         return None
     
-    print("[INFO] Preparing Training Data...")
-    features = ['OCC_HOUR', 'OCC_DOW', 'OCC_MONTH', 'AUTOMOBILE', 'MOTORCYCLE', 'PASSENGER', 'BICYCLE', 'PEDESTRIAN']
-    target = 'INJURY_COLLISIONS'
-
-    if target not in df_geojson.columns:
-        print("[ERROR] Target variable 'INJURY_COLLISIONS' not found.")
-        return None
-
-    df_geojson = df_geojson.dropna(subset=[target])
-    X = pd.get_dummies(df_geojson[features])
-    y = df_geojson[target]
+    print("[INFO] Preparing training data...")
+    coords = np.array([(p.x, p.y) for p in df.geometry])
     
-    if y.isnull().any():
-        print("[ERROR] Target variable contains NaN values. Exiting.")
-        return None
-    
-    if y.dtype == 'O':
-        y = y.astype('category').cat.codes
-
-    print("[INFO] Splitting dataset into training and testing sets...")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    print("[INFO] Training RandomForest Model...")
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
-    print("[SUCCESS] Model Training Completed.")
+    print("[INFO] Training Nearest Neighbors model...")
+    model = NearestNeighbors(n_neighbors=5, algorithm='ball_tree').fit(coords)
+    print("[SUCCESS] Model training completed.")
     
     print("[INFO] Saving trained model...")
     with open(model_file, 'wb') as f:
@@ -73,11 +75,13 @@ def train_and_save_model(df_geojson):
     print("[SUCCESS] Model saved successfully.")
     return model
 
-df_geojson = load_geojson()
-model = train_and_save_model(df_geojson)
-
-if model is None:
-    raise SystemExit("[ERROR] Model training failed. Exiting application.")
+# Load or train model
+print("[INFO] Initializing system...")
+data = load_geojson()
+spatial_model = train_spatial_model(data)
+if spatial_model is None:
+    print("[ERROR] Model initialization failed. Exiting application.")
+    raise SystemExit
 
 # Initialize Flask API
 app = Flask(__name__)
@@ -85,26 +89,34 @@ CORS(app)
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Handles prediction requests from clients."""
-    print("[INFO] Received Prediction Request...")
+    print("[INFO] Received prediction request...")
     data = request.get_json()
-    input_df = pd.DataFrame([data])
-    input_df = pd.get_dummies(input_df)
+    start_address = data.get('start_address')
+    end_address = data.get('end_address')
     
-    missing_cols = set(model.feature_names_in_) - set(input_df.columns)
-    for col in missing_cols:
-        input_df[col] = 0
-    input_df = input_df.reindex(columns=model.feature_names_in_, fill_value=0)
+    start_lat, start_lon = get_coordinates(start_address)
+    end_lat, end_lon = get_coordinates(end_address)
     
-    prediction = model.predict(input_df)
-    print(f"[SUCCESS] Prediction Completed: {prediction[0]}")
-    return jsonify({'predicted_injury_collisions': str(prediction[0])})
+    if None in (start_lat, start_lon, end_lat, end_lon):
+        print("[ERROR] Could not geocode addresses.")
+        return jsonify({'error': 'Invalid address. Unable to get coordinates.'}), 400
+    
+    if not spatial_model:
+        print("[ERROR] Model not available.")
+        return jsonify({'error': 'Model not available'}), 500
+    
+    print("[INFO] Calculating nearest collisions...")
+    distances, _ = spatial_model.kneighbors([(start_lat, start_lon), (end_lat, end_lon)])
+    risk_score = np.mean(distances)
+    print(f"[SUCCESS] Prediction completed. Risk Score: {risk_score}")
+    
+    return jsonify({'collision_risk': float(risk_score)})
 
 @app.route('/')
 def home():
-    """Returns a simple message to confirm the API is running."""
-    return "Traffic Predictor API is running. Use /predict endpoint."
+    print("[INFO] API is running...")
+    return "Collision Prediction API is running. Use /predict endpoint."
 
 if __name__ == "__main__":
-    print("[INFO] Starting Flask Server...")
+    print("[INFO] Starting Flask server...")
     app.run(debug=False, host='0.0.0.0', port=5000)

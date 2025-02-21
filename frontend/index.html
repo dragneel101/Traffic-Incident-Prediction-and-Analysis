@@ -3,24 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traffic Predictor</title>
+    <title>Collision Risk Predictor</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/geocoding/v5/mapbox.places.js?access_token=sk.eyJ1Ijoia2hhaXR1ciIsImEiOiJjbTdlZGc1ZHEwY3RoMmtvZWVteTd3N2FoIn0.YKCU9Yip1CMYgyI4kH-4-Q"></script>
+    <style>
+        .autocomplete-suggestions {
+            border: 1px solid #ddd;
+            max-height: 150px;
+            overflow-y: auto;
+            background: white;
+            position: absolute;
+            width: calc(100% - 20px);
+            z-index: 1000;
+        }
+        .autocomplete-suggestion {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .autocomplete-suggestion:hover {
+            background: #f0f0f0;
+        }
+    </style>
 </head>
 <body>
-    <h2>Traffic Predictor</h2>
-    <form id="prediction-form">
-        <label>Occurrence Hour: <input type="number" id="occ_hour" required></label><br>
-        <label>Day of Week: <input type="number" id="occ_dow" required></label><br>
-        <label>Month: <input type="number" id="occ_month" required></label><br>
-        <label>Automobile: <input type="number" id="automobile" required></label><br>
-        <label>Motorcycle: <input type="number" id="motorcycle" required></label><br>
-        <label>Passenger: <input type="number" id="passenger" required></label><br>
-        <label>Bicycle: <input type="number" id="bicycle" required></label><br>
-        <label>Pedestrian: <input type="number" id="pedestrian" required></label><br>
-        <button type="submit">Predict</button>
-    </form>
-    <h3 id="result"></h3>
-
+    <div class="container">
+        <h2>Collision Risk Predictor</h2>
+        <form id="prediction-form">
+            <label for="start_address">Start Address:</label>
+            <input type="text" id="start_address" placeholder="Enter start address" required>
+            <div id="start_suggestions" class="autocomplete-suggestions"></div>
+            
+            <label for="end_address">End Address:</label>
+            <input type="text" id="end_address" placeholder="Enter end address" required>
+            <div id="end_suggestions" class="autocomplete-suggestions"></div>
+            
+            <button type="submit">Predict Collision Risk</button>
+        </form>
+        <div id="result" class="result-box"></div>
+    </div>
+    
+    <script>
+        mapboxgl.accessToken = 'sk.eyJ1Ijoia2hhaXR1ciIsImEiOiJjbTdlZGc1ZHEwY3RoMmtvZWVteTd3N2FoIn0.YKCU9Yip1CMYgyI4kH-4-Q';
+        
+        function setupAutocomplete(inputId, suggestionsId) {
+            const input = document.getElementById(inputId);
+            const suggestions = document.getElementById(suggestionsId);
+            
+            input.addEventListener("input", function() {
+                if (input.value.length < 3) {
+                    suggestions.innerHTML = "";
+                    return;
+                }
+                
+                fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${input.value}.json?access_token=${mapboxgl.accessToken}`)
+                .then(response => response.json())
+                .then(data => {
+                    suggestions.innerHTML = "";
+                    data.features.forEach(feature => {
+                        const div = document.createElement("div");
+                        div.classList.add("autocomplete-suggestion");
+                        div.textContent = feature.place_name;
+                        div.addEventListener("click", function() {
+                            input.value = feature.place_name;
+                            suggestions.innerHTML = "";
+                        });
+                        suggestions.appendChild(div);
+                    });
+                });
+            });
+        }
+        
+        window.onload = function() {
+            setupAutocomplete("start_address", "start_suggestions");
+            setupAutocomplete("end_address", "end_suggestions");
+        };
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
