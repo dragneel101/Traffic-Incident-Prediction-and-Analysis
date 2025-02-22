@@ -1,0 +1,72 @@
+#Install OpenRouteService (ORS) in Python, install the ors-py library:
+#pip install openrouteservice
+
+#Basic API Call for Route Calculation
+
+import openrouteservice
+
+#the following will use OpenRouteService API to find the shortest driving route between two locations, and returns route info (distance, duration, waypoints) in GeoJSON format
+#set up ORS client with API key
+API_KEY = "5b3ce3597851110001cf6248f88be3df21104cc9a3a4279685c3504f"
+client = openrouteservice.Client(key=API_KEY)
+
+# Define start and end coordinates [longitude, latitude]
+start = [-79.3832, 43.6532]  # Toronto (example)
+end = [-79.4000, 43.7000]  # Another location in Toronto
+
+# Get a route
+route = client.directions(
+    coordinates=[start, end],
+    profile='driving-car',  # Can also use 'cycling-regular', 'foot-walking', etc.
+    format='geojson'
+)
+
+print(route)
+
+#To integrate ORS into the Flask Backend
+#this will create an API endpoint /route that recieves start and end locations from frontend
+#fetches best driving route from ORS
+#returns route details in GEOJson format
+from flask import Flask, request, jsonify
+import openrouteservice
+
+app = Flask(__name__)
+
+# Initialize ORS client
+API_KEY = "your-api-key-here"
+ors_client = openrouteservice.Client(key=API_KEY)
+
+@app.route('/route', methods=['POST'])
+def get_route():
+    try:
+        data = request.get_json()
+        start = data['start']  # Example: [-79.38, 43.65]
+        end = data['end']      # Example: [-79.40, 43.70]
+
+        # Fetch route from ORS
+        route = ors_client.directions(
+            coordinates=[start, end],
+            profile='driving-car',
+            format='geojson'
+        )
+
+        return jsonify(route)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+#connecting to frontend
+fetch("http://localhost:5000/route", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        start: [-79.38, 43.65],
+        end: [-79.40, 43.70]
+    })
+})
+.then(response => response.json())
+.then(data => console.log("Route Data:", data))
+.catch(error => console.error("Error:", error));
