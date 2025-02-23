@@ -16,13 +16,14 @@ This project is a **Traffic Incident Predictor** using **Machine Learning and Fl
 Traffic_Predictor/
 │── backend/
 │   ├── app.py  # Flask API for predictions
-│   ├── model.pkl  # Saved machine learning model
 │   ├── requirements.txt  # Required dependencies
-│   ├── Traffic_Collisions_Open_Data.geojson  # GeoJSON dataset
 │── frontend/
 │   ├── index.html  # Web UI
 │   ├── script.js  # Handles API calls
 │   ├── styles.css  # UI styling
+│── Data/
+│   ├── model.pkl  # Saved machine learning model
+│   ├── Traffic_Collisions_Open_Data.geojson  # GeoJSON dataset
 │── README.md  # Project documentation
 ```
 
