@@ -1,0 +1,104 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    margin: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+/* Form Styling */
+form {
+    display: inline-block;
+    text-align: left;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 400px;
+}
+
+/* Input Fields */
+input {
+    width: calc(100% - 12px);
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+/* Button Styling */
+button {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Result Box */
+#result {
+    margin-top: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Loading Indicator */
+.loading {
+    color: #ff9800;
+    font-weight: bold;
+}
+
+/* Error Message */
+.error {
+    color: #d9534f;
+    font-weight: bold;
+}
+
+/* Autocomplete Suggestions */
+.autocomplete-suggestion {
+    background: white;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.autocomplete-suggestion:hover {
+    background-color: #f0f0f0;
+}
+
+/* Autocomplete Dropdown */
+.suggestions-container {
+    position: absolute;
+    background: white;
+    width: calc(100% - 12px);
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    z-index: 1000;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 480px) {
+    form {
+        width: 100%;
+        padding: 15px;
+    }
+
+    input, button {
+        font-size: 14px;
+    }
+}
