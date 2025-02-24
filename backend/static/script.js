@@ -6,7 +6,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const startSuggestions = document.getElementById("start_suggestions");
     const endSuggestions = document.getElementById("end_suggestions");
 
-    const API_URL = "http://localhost:5000/predict"; // Ensure this matches your Flask API URL
+    const API_URL = window.location.hostname === "localhost"
+    ? "http://localhost:5000/predict"  // Local development
+    : window.location.hostname.includes("traffic.khaitu.ca")
+        ? "https://traffic.khaitu.ca/predict"  // Live deployment using domain
+        : "http://10.0.0.252:5000/predict";  // Server IP
+
+
     const MAPBOX_ACCESS_TOKEN = "pk.eyJ1Ijoia2hhaXR1ciIsImEiOiJjbTdlZGN2bTMwY3IyMmpvcWUzejc4ajMzIn0.JpG-_mV4iS_hBDQ61tutVg"; // Replace with your actual public key
     
     // Ontario bounding box
