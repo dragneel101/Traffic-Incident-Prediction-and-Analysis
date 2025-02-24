@@ -9,7 +9,7 @@ from sklearn.neighbors import NearestNeighbors
 
 # Initialize Flask App
 app = Flask(__name__, static_folder="static")
-CORS(app)
+CORS(app, origins=["*"])  # 🔥 Allow all origins (Temporary fix for debugging)
 
 # File Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
