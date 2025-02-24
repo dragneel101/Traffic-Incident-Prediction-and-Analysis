@@ -6,10 +6,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const startSuggestions = document.getElementById("start_suggestions");
     const endSuggestions = document.getElementById("end_suggestions");
 
-    const API_URL = "http://localhost:5000/predict";
+    const API_URL = "http://localhost:5000/predict"; // Ensure this matches your Flask API URL
     const MAPBOX_ACCESS_TOKEN = "pk.eyJ1Ijoia2hhaXR1ciIsImEiOiJjbTdlZGN2bTMwY3IyMmpvcWUzejc4ajMzIn0.JpG-_mV4iS_hBDQ61tutVg"; // Replace with your actual public key
-
-    // Ontario bounding box (Min Lon, Min Lat, Max Lon, Max Lat)
+    
+    // Ontario bounding box
     const ONTARIO_BBOX = "-95.1562,41.6766,-74.3439,56.85";
 
     // Initialize Mapbox
@@ -23,7 +23,66 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let startMarker, endMarker, routeLayer;
 
-    // 🟢 Auto-suggestion function (fixes issues)
+    // 🟢 Function to fetch road-following route from Mapbox Directions API
+    async function getRoute(startCoords, endCoords) {
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${startCoords[1]},${startCoords[0]};${endCoords[1]},${endCoords[0]}?geometries=geojson&access_token=${MAPBOX_ACCESS_TOKEN}`;
+        
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.routes.length > 0) {
+                return data.routes[0].geometry; // Return the best route
+            } else {
+                console.error("No route found.");
+                return null;
+            }
+        } catch (error) {
+            console.error("Error fetching route:", error);
+            return null;
+        }
+    }
+
+    // 🟢 Function to update map with road-following route
+    async function updateMap(startCoords, endCoords, riskScore) {
+        if (startMarker) startMarker.remove();
+        if (endMarker) endMarker.remove();
+        if (map.getLayer('route')) {
+            map.removeLayer('route');
+            map.removeSource('route');
+        }
+
+        const riskColor = riskScore < 2 ? "green" : riskScore < 4 ? "orange" : "red";
+
+        startMarker = new mapboxgl.Marker({ color: riskColor })
+            .setLngLat([startCoords[1], startCoords[0]]) // Ensure [longitude, latitude]
+            .setPopup(new mapboxgl.Popup().setText("Start Location"))
+            .addTo(map);
+
+        endMarker = new mapboxgl.Marker({ color: riskColor })
+            .setLngLat([endCoords[1], endCoords[0]]) // Ensure [longitude, latitude]
+            .setPopup(new mapboxgl.Popup().setText("End Location"))
+            .addTo(map);
+
+        // Fetch road-following route
+        const routeGeoJSON = await getRoute(startCoords, endCoords);
+        
+        if (routeGeoJSON) {
+            map.addSource('route', { type: 'geojson', data: routeGeoJSON });
+
+            map.addLayer({
+                id: 'route',
+                type: 'line',
+                source: 'route',
+                layout: { "line-join": "round", "line-cap": "round" },
+                paint: { "line-color": riskColor, "line-width": 5, "line-opacity": 0.8 }
+            });
+
+            map.fitBounds([startCoords.reverse(), endCoords.reverse()], { padding: 50 });
+        }
+    }
+
+    // 🟢 Auto-suggestion function (Ontario-only)
     function setupAutocomplete(inputElement, suggestionsElement) {
         let debounceTimeout;
 
@@ -31,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const query = inputElement.value.trim();
 
             if (query.length < 3) {
-                suggestionsElement.style.display = "none"; // Hide dropdown when input is empty
+                suggestionsElement.style.display = "none"; 
                 return;
             }
 
@@ -56,7 +115,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         return;
                     }
 
-                    // Populate suggestions
                     data.features.forEach((feature) => {
                         if (feature.context && feature.context.some(ctx => ctx.text.includes("Ontario"))) {
                             const div = document.createElement("div");
@@ -64,28 +122,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             div.textContent = feature.place_name;
                             div.addEventListener("click", function () {
                                 inputElement.value = feature.place_name;
-                                suggestionsElement.style.display = "none"; // Hide dropdown after selection
+                                suggestionsElement.style.display = "none"; 
                             });
                             suggestionsElement.appendChild(div);
                         }
                     });
 
-                    // Show no results if Ontario addresses are missing
                     if (!suggestionsElement.innerHTML.trim()) {
                         suggestionsElement.innerHTML = "<div class='autocomplete-suggestion'>No Ontario addresses found</div>";
                     }
 
-                    suggestionsElement.style.display = "block"; // Show dropdown
+                    suggestionsElement.style.display = "block";
 
                 } catch (error) {
                     console.error("[ERROR] Autocomplete failed:", error);
                     suggestionsElement.innerHTML = "<div class='autocomplete-suggestion'>Error fetching data</div>";
                     suggestionsElement.style.display = "block";
                 }
-            }, 300); // Debounce time: 300ms
+            }, 300);
         });
 
-        // Hide suggestions when clicking outside
         document.addEventListener("click", function (event) {
             if (!inputElement.contains(event.target) && !suggestionsElement.contains(event.target)) {
                 suggestionsElement.style.display = "none";
@@ -96,49 +152,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // 🟢 Initialize auto-suggestion for both address fields
     setupAutocomplete(startInput, startSuggestions);
     setupAutocomplete(endInput, endSuggestions);
-
-    // 🟢 Function to update map with start and end markers
-    function updateMap(startCoords, endCoords, riskScore) {
-        if (startMarker) startMarker.remove();
-        if (endMarker) endMarker.remove();
-        if (map.getLayer('route')) {
-            map.removeLayer('route');
-            map.removeSource('route');
-        }
-    
-        const riskColor = riskScore < 2 ? "green" : riskScore < 4 ? "orange" : "red";
-    
-        startMarker = new mapboxgl.Marker({ color: riskColor })
-            .setLngLat([startCoords[1], startCoords[0]]) // Ensure [longitude, latitude]
-            .setPopup(new mapboxgl.Popup().setText("Start Location"))
-            .addTo(map);
-    
-        endMarker = new mapboxgl.Marker({ color: riskColor })
-            .setLngLat([endCoords[1], endCoords[0]]) // Ensure [longitude, latitude]
-            .setPopup(new mapboxgl.Popup().setText("End Location"))
-            .addTo(map);
-    
-        const routeGeoJSON = {
-            type: "Feature",
-            geometry: {
-                type: "LineString",
-                coordinates: [[startCoords[1], startCoords[0]], [endCoords[1], endCoords[0]]] // Ensure correct order
-            }
-        };
-    
-        map.addSource('route', { type: 'geojson', data: routeGeoJSON });
-    
-        map.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": riskColor, "line-width": 5, "line-opacity": 0.8 }
-        });
-    
-        map.fitBounds([startCoords.reverse(), endCoords.reverse()], { padding: 50 });
-    }
-    
 
     // 🟢 Handle form submission
     form.addEventListener("submit", async function (event) {
@@ -186,15 +199,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1&country=CA`
             );
             const data = await response.json();
-            
             if (data.features.length) {
-                let [lon, lat] = data.features[0].center; // Mapbox returns [longitude, latitude]
-                return [lat, lon]; // Convert to [latitude, longitude] for correct mapping
+                let [lon, lat] = data.features[0].center;
+                return [lat, lon];
             }
         } catch (error) {
             console.error("[ERROR] Failed to get coordinates:", error);
         }
         return null;
     }
-    
 });
