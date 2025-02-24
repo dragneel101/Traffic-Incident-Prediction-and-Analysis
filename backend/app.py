@@ -41,6 +41,11 @@ def serve_index():
 def serve_static(filename):
     return send_from_directory(app.static_folder, filename)
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(app.static_folder, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+
 # Prediction API
 @app.route('/predict', methods=['POST'])
 def predict():
