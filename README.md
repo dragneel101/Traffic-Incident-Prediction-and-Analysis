@@ -115,26 +115,6 @@ load_dotenv()
 MAPBOX_API_KEY = os.getenv("MAPBOX_ACCESS_TOKEN")
 ```
 
----
-
-## 👩‍💻 **Contributing**
-🔹 **Fork the repository**  
-🔹 **Create a new branch** (`git checkout -b feature-name`)  
-🔹 **Commit your changes** (`git commit -m "Added new feature"`)  
-🔹 **Push to GitHub** (`git push origin feature-name`)  
-🔹 **Create a Pull Request** 🚀  
-
----
-
-## 📜 **License**
-This project is licensed under the **MIT License**.
-
----
-
-## 📞 **Contact**
-For questions or feedback, reach out via:  
-📧 **Email:** your.email@example.com  
-📌 **GitHub:** [YourUsername](https://github.com/YOUR_USERNAME)
 
 ---
 
