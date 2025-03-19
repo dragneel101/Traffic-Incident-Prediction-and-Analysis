@@ -20,6 +20,16 @@
         }
     </style>
 </head>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const token = sessionStorage.getItem("authToken");
+
+        if (!token) {
+            window.location.href = "login.html"; // Redirect to login if not authenticated
+        }
+    });
+</script>
+
 <body>
 
     <div class="container">

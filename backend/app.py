@@ -6,6 +6,8 @@ import requests
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from sklearn.neighbors import NearestNeighbors
+import jwt
+import datetime
 
 # Initialize Flask App
 app = Flask(__name__, static_folder="static")
@@ -18,6 +20,11 @@ model_file = os.path.join(BASE_DIR, "../Data/model.pkl")
 
 # API Key for Mapbox
 MAPBOX_API_KEY = "sk.eyJ1Ijoia2hhaXR1ciIsImEiOiJjbTdlZGc1ZHEwY3RoMmtvZWVteTd3N2FoIn0.YKCU9Yip1CMYgyI4kH-4-Q"
+
+SECRET_KEY = "supersecretkey"
+USERS = {
+    "AdminUser": "AdminPassword"
+}
 
 # Function to load model
 def load_model():
@@ -35,7 +42,7 @@ spatial_model = load_model()
 # Serve Static Files (Frontend)
 @app.route('/')
 def serve_index():
-    return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory(app.static_folder, 'login.html')  # Serve login page first
 
 @app.route('/<path:filename>')
 def serve_static(filename):
@@ -71,6 +78,23 @@ def predict():
     except Exception as e:
         print(f"[ERROR] Prediction error: {e}")
         return jsonify({'error': 'Prediction failed'}), 500
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
+    if username in USERS and USERS[username] == password:
+        token = jwt.encode({
+            "user": username,
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Token expires in 1 hour
+        }, SECRET_KEY, algorithm="HS256")
+
+        return jsonify({"success": True, "token": token})
+    
+    return jsonify({"success": False, "error": "Invalid credentials"}), 401
+
 
 # Function to get coordinates using Mapbox API
 def get_coordinates(address):
