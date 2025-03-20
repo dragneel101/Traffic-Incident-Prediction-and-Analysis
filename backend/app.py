@@ -7,11 +7,14 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from sklearn.neighbors import NearestNeighbors
 import jwt
+from jwt import encode, decode
 import datetime
 
 # Initialize Flask App
 app = Flask(__name__, static_folder="static")
 CORS(app, origins=["*"])  # 🔥 Allow all origins (Temporary fix for debugging)
+CORS(app, supports_credentials=True, origins=["https://traffic.khaitu.ca"])
+
 
 # File Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -81,19 +84,30 @@ def predict():
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "Invalid JSON data"}), 400
 
-    if username in USERS and USERS[username] == password:
-        token = jwt.encode({
-            "user": username,
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Token expires in 1 hour
-        }, SECRET_KEY, algorithm="HS256")
+        username = data.get("username")
+        password = data.get("password")
 
-        return jsonify({"success": True, "token": token})
-    
-    return jsonify({"success": False, "error": "Invalid credentials"}), 401
+        if not username or not password:
+            return jsonify({"success": False, "error": "Username and password required"}), 400
+
+        if username in USERS and USERS[username] == password:
+            token = encode({
+                "user": username,
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+            }, SECRET_KEY, algorithm="HS256")
+
+            return jsonify({"success": True, "token": token})
+
+        return jsonify({"success": False, "error": "Invalid credentials"}),401
+
+    except Exception as e:
+        print(f"[ERROR] Login error: {e}")
+        return jsonify({"success": False, "error": "Internal Server Error"}), 500
 
 
 # Function to get coordinates using Mapbox API

@@ -159,6 +159,14 @@ document.addEventListener("DOMContentLoaded", function () {
     setupAutocomplete(startInput, startSuggestions);
     setupAutocomplete(endInput, endSuggestions);
 
+    
+ // 🟢 Check Authentication Before Loading Page
+    document.addEventListener("DOMContentLoaded", function () {
+        const token = sessionStorage.getItem("authToken");
+        if (!token) {
+            window.location.href = "login.html";  // Redirect to login if not authenticated
+    }
+});
     // 🟢 Handle form submission
     form.addEventListener("submit", async function (event) {
         event.preventDefault();
