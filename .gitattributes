@@ -1,2 +1,0 @@
-backend/Traffic_Collisions_Open_Data.geojson filter=lfs diff=lfs merge=lfs -text
-backend/model.pkl filter=lfs diff=lfs merge=lfs -text

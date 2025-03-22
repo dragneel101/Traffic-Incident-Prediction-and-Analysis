@@ -1,7 +1,4 @@
-flask
-geopandas
-pandas
-numpy
-scikit-learn
-CORS
-flask_cors
+fastapi
+uvicorn
+python-dotenv
+requests
