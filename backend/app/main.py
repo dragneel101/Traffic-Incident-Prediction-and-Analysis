@@ -1,6 +1,10 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import ping
+from app.routes import ping, predict
+
+
 
 app = FastAPI(title="Traffic Risk Prediction API")
 
@@ -15,6 +19,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(ping.router)
+app.include_router(predict.router, prefix="/api")
 
 @app.get("/")
 def root():
