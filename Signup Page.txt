@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Traffic Incident Prediction</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="login-container">
+    <h2>Create an Account</h2>
+    <form id="signup-form">
+      <label for="fullname">Full Name:</label>
+      <input type="text" id="fullname" name="fullname" required>
+
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required>
+
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required>
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" minlength="8" required>
+
+      <label for="description">Description:</label>
+      <textarea id="description" name="description" rows="3"></textarea>
+
+      <button type="submit">Sign Up</button>
+      <p id="error-message" class="error-message"></p>
+    </form>
+    <p>Already have an account? <a href="login.html">Login here</a></p>
+  </div>
+
+  <script>
+    document.getElementById("signup-form").addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const formData = {
+        fullname: document.getElementById("fullname").value,
+        username: document.getElementById("username").value,
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value,
+        description: document.getElementById("description").value
+      };
+
+      if (formData.password.length < 8) {
+        document.getElementById("error-message").textContent = "Password must be at least 8 characters.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          alert("Account created successfully!");
+          window.location.href = "login.html";
+        } else {
+          document.getElementById("error-message").textContent = result.error || "Signup failed.";
+        }
+      } catch (err) {
+        document.getElementById("error-message").textContent = "Error connecting to server.";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile - Traffic Incident Prediction</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="login-container">
+    <h2>User Profile</h2>
+    <form id="profile-form">
+      <label for="fullname">Full Name:</label>
+      <input type="text" id="fullname" name="fullname" required>
+
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" readonly>
+
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" readonly>
+
+      <label for="description">Description:</label>
+      <textarea id="description" name="description" rows="3"></textarea>
+
+      <button type="submit">Update Profile</button>
+      <button type="button" id="delete-account" style="margin-top:10px; background-color:red;">Delete Account</button>
+      <p id="status-message"></p>
+    </form>
+    <p><a href="dashboard.html">Go to Dashboard</a></p>
+  </div>
+
+  <script>
+    const username = localStorage.getItem("currentUser");
+    if (!username) {
+      alert("No user logged in. Redirecting to login page.");
+      window.location.href = "login.html";
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch(`/user/${username}`);
+        const data = await res.json();
+
+        if (res.ok) {
+          document.getElementById("fullname").value = data.fullname;
+          document.getElementById("username").value = data.username;
+          document.getElementById("email").value = data.email;
+          document.getElementById("description").value = data.description;
+        } else {
+          document.getElementById("status-message").textContent = "Failed to load profile.";
+        }
+      } catch (err) {
+        document.getElementById("status-message").textContent = "Server error.";
+      }
+    }
+
+    document.getElementById("profile-form").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const updatedData = {
+        fullname: document.getElementById("fullname").value,
+        description: document.getElementById("description").value
+      };
+
+      try {
+        const res = await fetch(`/user/${username}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedData)
+        });
+
+        const result = await res.json();
+        document.getElementById("status-message").textContent = result.message || "Profile updated.";
+      } catch (err) {
+        document.getElementById("status-message").textContent = "Error updating profile.";
+      }
+    });
+
+    document.getElementById("delete-account").addEventListener("click", async function() {
+      if (confirm("Are you sure you want to delete your account?")) {
+        try {
+          const res = await fetch(`/user/${username}`, { method: "DELETE" });
+          if (res.ok) {
+            alert("Account deleted successfully.");
+            localStorage.removeItem("currentUser");
+            window.location.href = "signup.html";
+          } else {
+            document.getElementById("status-message").textContent = "Error deleting account.";
+          }
+        } catch (err) {
+          document.getElementById("status-message").textContent = "Server error.";
+        }
+      }
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>
