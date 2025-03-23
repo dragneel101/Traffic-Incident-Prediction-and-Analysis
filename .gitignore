@@ -1,0 +1,52 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+
+# Environment variables
+.env
+
+# IDE/editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS/system files
+.DS_Store
+Thumbs.db
+
+# Log & debug files
+*.log
+
+# Cache
+*.cache
+.cache/
+__pypackages__/
+
+# Jupyter Notebooks Checkpoints
+.ipynb_checkpoints/
+
+# Model and data files
+*.pkl
+*.joblib
+/data/
+
+# Local SQLite or test DBs
+*.sqlite3
+*.db
+
+# Build and packaging
+dist/
+build/
+*.egg-info/
+
+# Node modules (if frontend included later)
+node_modules/
