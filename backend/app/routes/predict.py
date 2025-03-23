@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.weather import get_weather
 from app.services.features import extract_time_features
+from app.services.distance import get_route_distance
+
 
 router = APIRouter()
 
@@ -19,11 +21,13 @@ def predict_risk(data: PredictRequest):
         # 2. Extract time features
         time_features = extract_time_features(data.timestamp)
 
+        distance_km = get_route_distance(data.start, data.end)
+
         # 3. Combine into a single feature dict (dummy features for now)
         features = {
             **weather,
             **time_features,
-            "distance_km": 5.4,  # placeholder, will compute later
+            "distance_km": distance_km
         }
 
         # 4. Dummy scoring logic (replace with model.predict later)
