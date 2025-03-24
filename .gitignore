@@ -37,7 +37,6 @@ __pypackages__/
 # Model and data files
 *.pkl
 *.joblib
-/data/
 
 # Local SQLite or test DBs
 *.sqlite3
