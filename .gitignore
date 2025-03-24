@@ -50,3 +50,10 @@ build/
 
 # Node modules (if frontend included later)
 node_modules/
+
+*.csv
+backend/data/processed/toronto_cleaned.csv
+backend/app/data/clean_toronto_data.py
+backend/app/data/weather_enrichment.py
+backend/app/data/clean_toronto_data.py
+backend/data/processed/toronto_cleaned.csv
