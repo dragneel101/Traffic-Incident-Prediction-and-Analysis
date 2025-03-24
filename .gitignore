@@ -37,7 +37,6 @@ __pypackages__/
 # Model and data files
 *.pkl
 *.joblib
-/data/
 
 # Local SQLite or test DBs
 *.sqlite3
@@ -50,3 +49,7 @@ build/
 
 # Node modules (if frontend included later)
 node_modules/
+
+*.csv
+backend/data/processed/toronto_cleaned.csv
+backend/data/processed/toronto_cleaned.csv
