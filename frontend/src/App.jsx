@@ -1,6 +1,6 @@
-// src/App.jsx
 import React from "react";
 import RiskForm from "./components/RiskForm";
+import RoutePlanner from "./components/RoutePlanner";
 
 function App() {
   return (
@@ -9,7 +9,8 @@ function App() {
         🚦 Traffic Collision Risk Predictor
       </header>
       <main>
-        <RiskForm />
+        <RiskForm/>
+        <RoutePlanner/>
       </main>
     </div>
   );
