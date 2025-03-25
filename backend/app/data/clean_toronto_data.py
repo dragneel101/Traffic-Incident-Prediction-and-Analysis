@@ -15,8 +15,8 @@ df = pd.read_csv(file_path)
 print(f"✅ Loaded {len(df)} rows")
 
 #for sample Test
-#df = df.head(1000)
-#print(f"✅ Loaded {len(df)} rows")
+df = df.head(10000)
+print(f"✅ Loaded {len(df)} rows")
 
 # Step 2: Drop rows with missing or invalid coordinates
 df = df.dropna(subset=["LAT_WGS84", "LONG_WGS84"])
@@ -53,8 +53,8 @@ selected.rename(columns={
 }, inplace=True)
 
 # Save cleaned sample
-#output_path = os.path.join("data", "processed", "toronto_cleaned_sample.csv")
-output_path = os.path.join("data", "processed", "toronto_cleaned.csv")
+output_path = os.path.join("data", "processed", "toronto_cleaned_sample.csv")
+#output_path = os.path.join("data", "processed", "toronto_cleaned.csv")
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 selected.to_csv(output_path, index=False)
 

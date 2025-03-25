@@ -18,7 +18,7 @@ selected = pd.read_csv(file_path)
 print(f"✅ Loaded {len(selected)} rows from toronto_cleaned.csv")
 
 # Optional: reduce size for testing
-#selected = selected.head(100)
+selected = selected.head(7000)
 
 # Add weather fields
 selected["temp_c"] = None
@@ -48,7 +48,8 @@ for i in tqdm(range(len(selected))):
     time.sleep(0.1)  # Optional sleep for rate limit safety
 
 # Save enriched dataset
-output_path = os.path.join("data", "processed", "toronto_enriched.csv")
+#output_path = os.path.join("data", "processed", "toronto_enriched.csv")
+output_path = os.path.join("data", "processed", "toronto_enriched_sample.csv")
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 selected.to_csv(output_path, index=False)
 print(f"✅ Weather-enriched data saved to: {output_path}")
