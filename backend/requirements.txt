@@ -7,3 +7,4 @@ meteostat
 tqdm
 scikit-learn
 numpy
+openrouteservice
