@@ -6,3 +6,4 @@ pandas
 meteostat
 tqdm
 scikit-learn
+numpy
