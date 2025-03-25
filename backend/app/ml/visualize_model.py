@@ -5,8 +5,7 @@ import seaborn as sns
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
     RocCurveDisplay,
-    PrecisionRecallDisplay,
-    classification_report
+    PrecisionRecallDisplay
 )
 import joblib
 
@@ -62,7 +61,7 @@ feature_df = pd.DataFrame({"feature": features, "importance": importances})
 feature_df = feature_df.sort_values("importance", ascending=False)
 
 plt.figure(figsize=(10, 6))
-sns.barplot(data=feature_df, x="importance", y="feature", hue="feature", palette="viridis", legend=False)
+sns.barplot(data=feature_df, x="importance", y="feature", palette="viridis")
 plt.title("Feature Importance")
 plt.tight_layout()
 plt.savefig(os.path.join(save_path, "feature_importance.png"))
