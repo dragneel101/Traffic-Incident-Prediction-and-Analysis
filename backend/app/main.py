@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import ping, predict
+from app.routes import ping, predict,route_risk
+from pydantic import BaseModel
+from typing import List
 
 
 
@@ -20,6 +22,7 @@ app.add_middleware(
 # Include routers
 app.include_router(ping.router)
 app.include_router(predict.router, prefix="/api")
+app.include_router(route_risk.router, prefix="/api")
 
 @app.get("/")
 def root():

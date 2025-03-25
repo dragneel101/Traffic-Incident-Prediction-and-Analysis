@@ -8,3 +8,5 @@ tqdm
 scikit-learn
 numpy
 openrouteservice
+pydantic
+typing
