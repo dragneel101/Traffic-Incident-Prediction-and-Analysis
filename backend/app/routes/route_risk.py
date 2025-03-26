@@ -4,6 +4,7 @@ from typing import List
 from app.services.routing import get_route_coordinates
 from app.services.predictor import predict_collision_risk
 from datetime import datetime
+from app.services.weather import get_weather
 
 router = APIRouter()
 
@@ -48,13 +49,16 @@ def predict_route_risk(request: RouteRequest):
             "longitude": (segment_start["longitude"] + segment_end["longitude"]) / 2
         }
 
+
+        weather = get_weather(midpoint["latitude"], midpoint["longitude"])
+
         # Dummy contextual inputs (customize later)
         input_features = {
             "hour": now.hour,
             "latitude": midpoint["latitude"],
             "longitude": midpoint["longitude"],
-            "temp_c": 22.0,         # placeholder
-            "precip_mm": 0.0,       # placeholder
+            "temp_c": weather["temp_c"],
+            "precip_mm": weather["precip_mm"],
             "AUTOMOBILE": 1,
             "MOTORCYCLE": 1,
             "PASSENGER": 1,
