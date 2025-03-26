@@ -16,7 +16,10 @@ const Route = ({ start, end, onRiskData }) => {
     }
 
     const control = L.Routing.control({
-      waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
+      waypoints: [
+        L.latLng(start.latitude, start.longitude),
+        L.latLng(end.latitude, end.longitude)
+      ],
       show: false,
       addWaypoints: false,
       routeWhileDragging: false,

@@ -6,7 +6,7 @@ import MapView from "./MapView";
 const RiskForm = () => {
   const [formData, setFormData] = useState({
     hour: 17,
-    latitude: 43.7,
+    latitude: 44.7,
     longitude: -79.4,
     temp_c: -5.0,
     precip_mm: 1.2,
