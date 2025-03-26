@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import MapView from "./MapView";
 import { getRouteRisk } from "../api/predict";
 import AddressSearch from "./AddressSearch";
-import Spinner from "./Spinner";
+import SpinnerPortal from "./SpinnerPortal"; // Updated to use portal-based spinner
 
 const RoutePlanner = () => {
   const [start, setStart] = useState(null);       // Start coordinates
@@ -24,16 +24,8 @@ const RoutePlanner = () => {
     }
   };
 
-
-  // Manual test button to trigger spinner
-  const handleTestSpinner = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 5000); // Simulate 2s load
-  };
-
-
   return (
-    <div className="mt-6"> {/* Removed relative from here */}
+    <div className="mt-6">
       <h2 className="text-xl font-semibold mb-4 text-indigo-600">
         🛣️ Route-Based Risk Planner
       </h2>
@@ -50,7 +42,7 @@ const RoutePlanner = () => {
         />
       </div>
 
-      {/* Predict button */}
+      {/* Predict button and test spinner */}
       <div className="flex gap-4 mb-4">
         <button
           className="bg-indigo-600 text-white px-4 py-2 rounded"
@@ -59,12 +51,6 @@ const RoutePlanner = () => {
         >
           Predict Route Risk
         </button>
-        <button
-          className="bg-gray-500 text-white px-4 py-2 rounded"
-          onClick={handleTestSpinner}
-        >
-          Test Spinner
-        </button>
         {(!start || !end) && (
           <span className="text-gray-600 text-sm pt-2">
             Click to drop pins for start and end
@@ -72,17 +58,18 @@ const RoutePlanner = () => {
         )}
       </div>
 
-      {/* Map with overlay wrapper */}
-      <div className="relative">
-        <MapView
-          start={start}
-          end={end}
-          setStart={setStart}
-          setEnd={setEnd}
-          segments={segments}
-        />
-        {loading && <Spinner fullscreen />}
-      </div>
+      {/* Map with route and segments */}
+      <MapView
+        start={start}
+        end={end}
+        setStart={setStart}
+        setEnd={setEnd}
+        segments={segments}
+        
+      />
+
+      {/* Fullscreen spinner overlay */}
+      {loading && <SpinnerPortal />}
     </div>
   );
 };
