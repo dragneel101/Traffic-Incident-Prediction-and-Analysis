@@ -27,6 +27,16 @@ class RouteRiskResponse(BaseModel):
     route_segments: List[SegmentRisk]
     overall_risk: float
 
+
+vehicle_weights = {
+    "AUTOMOBILE": 0.9,
+    "MOTORCYCLE": 0.1,
+    "PASSENGER": 0.9,
+    "BICYCLE": 0.3,
+    "PEDESTRIAN": 0.4
+}
+
+
 @router.post("/predict/route_risk", response_model=RouteRiskResponse)
 def predict_route_risk(request: RouteRequest):
     # Call ORS to get the route path
@@ -59,11 +69,7 @@ def predict_route_risk(request: RouteRequest):
             "longitude": midpoint["longitude"],
             "temp_c": weather["temp_c"],
             "precip_mm": weather["precip_mm"],
-            "AUTOMOBILE": 1,
-            "MOTORCYCLE": 1,
-            "PASSENGER": 1,
-            "BICYCLE": 1,
-            "PEDESTRIAN": 1
+            **vehicle_weights
         }
 
         risk = predict_collision_risk(input_features)
