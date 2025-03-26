@@ -107,9 +107,9 @@ const MapView = ({ start, end, setStart, setEnd, segments = [] }) => {
   const getColor = (risk) => {
     console.log("🧪 Segment risk:", risk);
     if (risk < 0.2) return "green";
-    if (risk < 0.4) return "lime";
-    if (risk < 0.6) return "orange";
-    if (risk < 0.8) return "orangered";
+    if (risk < 0.4) return "blue";
+    if (risk < 0.6) return "yellow";
+    if (risk < 0.8) return "orange";
     return "red";
   };
 

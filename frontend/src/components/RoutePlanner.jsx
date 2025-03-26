@@ -3,6 +3,7 @@ import MapView from "./MapView";
 import { getRouteRisk } from "../api/predict";
 import AddressSearch from "./AddressSearch";
 import SpinnerPortal from "./SpinnerPortal"; // Updated to use portal-based spinner
+import RiskLegend from "./RiskLegend";
 
 const RoutePlanner = () => {
   const [start, setStart] = useState(null);       // Start coordinates
@@ -57,6 +58,9 @@ const RoutePlanner = () => {
           </span>
         )}
       </div>
+
+      {/* Risk Score Legend */}
+      <RiskLegend />
 
       {/* Map with route and segments */}
       <MapView
