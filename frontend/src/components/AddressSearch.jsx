@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import axios from "axios";
 
-const AddressSearch = ({ label, onSelect }) => {
+const AddressSearch = forwardRef(({ label, onSelect }, ref) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    clear() {
+      setQuery("");
+      setResults([]);
+      setShowDropdown(false);
+    },
+  }));
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -25,7 +33,7 @@ const AddressSearch = ({ label, onSelect }) => {
         })
         .then((res) => setResults(res.data))
         .catch(() => setResults([]));
-    }, 400); // debounce
+    }, 400);
 
     return () => clearTimeout(delayDebounce);
   }, [query]);
@@ -41,7 +49,9 @@ const AddressSearch = ({ label, onSelect }) => {
 
   return (
     <div className="relative w-full">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
       <input
         type="text"
         value={query}
@@ -68,6 +78,6 @@ const AddressSearch = ({ label, onSelect }) => {
       )}
     </div>
   );
-};
+});
 
 export default AddressSearch;

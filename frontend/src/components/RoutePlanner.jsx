@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import MapView from "./MapView";
 import { getRouteRisk } from "../api/predict";
 import AddressSearch from "./AddressSearch";
@@ -10,6 +10,8 @@ const RoutePlanner = () => {
   const [end, setEnd] = useState(null);           // End coordinates
   const [segments, setSegments] = useState([]);   // Route risk segments
   const [loading, setLoading] = useState(false);  // Spinner toggle
+  const startRef = useRef();
+  const endRef = useRef();
 
   // Trigger route risk prediction from backend
   const handlePredict = async () => {
@@ -25,6 +27,15 @@ const RoutePlanner = () => {
     }
   };
 
+    // Reset markers and segments
+    const handleReset = () => {
+      setStart(null);
+      setEnd(null);
+      setSegments([]);
+      if (startRef.current) startRef.current.clear();
+      if (endRef.current) endRef.current.clear();
+    };
+
   return (
     <div className="mt-6">
       <h2 className="text-xl font-semibold mb-4 text-indigo-600">
@@ -36,10 +47,12 @@ const RoutePlanner = () => {
         <AddressSearch
           label="Start Address"
           onSelect={(coords) => setStart(coords)}
+          ref={startRef}
         />
         <AddressSearch
           label="End Address"
           onSelect={(coords) => setEnd(coords)}
+          ref={endRef}
         />
       </div>
 
@@ -51,6 +64,12 @@ const RoutePlanner = () => {
           disabled={!start || !end}
         >
           Predict Route Risk
+        </button>
+        <button
+          className="bg-red-600 text-white px-4 py-2 rounded"
+          onClick={handleReset}
+        >
+          Reset Markers
         </button>
         {(!start || !end) && (
           <span className="text-gray-600 text-sm pt-2">
