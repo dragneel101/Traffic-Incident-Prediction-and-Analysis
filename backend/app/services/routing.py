@@ -31,15 +31,15 @@ def get_route_coordinates(start: dict, end: dict):
         ]
     }
 
-    print("📤 Sending request to ORS...")
+    print("Sending request to ORS...")
     print("Request body:", body)
 
     response = requests.post(url, json=body, headers=headers)
 
-    print("📥 ORS Status Code:", response.status_code)
+    print("ORS Status Code:", response.status_code)
 
     if response.status_code != 200:
-        print("📥 ORS Raw Response:", response.text)
+        print("ORS Raw Response:", response.text)
         raise Exception(f"ORS Error {response.status_code}: {response.text}")
 
     data = response.json()

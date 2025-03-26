@@ -2,6 +2,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List
 from app.services.routing import get_route_coordinates
+from app.services.predictor import predict_collision_risk
+from datetime import datetime
 
 router = APIRouter()
 
@@ -34,13 +36,40 @@ def predict_route_risk(request: RouteRequest):
 
     # Generate fake risk per segment (later use real model)
     segments = []
+    now = datetime.now()
+
     for i in range(len(route) - 1):
+        segment_start = route[i]
+        segment_end = route[i + 1]
+
+        # Use midpoint of segment
+        midpoint = {
+            "latitude": (segment_start["latitude"] + segment_end["latitude"]) / 2,
+            "longitude": (segment_start["longitude"] + segment_end["longitude"]) / 2
+        }
+
+        # Dummy contextual inputs (customize later)
+        input_features = {
+            "hour": now.hour,
+            "latitude": midpoint["latitude"],
+            "longitude": midpoint["longitude"],
+            "temp_c": 22.0,         # placeholder
+            "precip_mm": 0.0,       # placeholder
+            "AUTOMOBILE": 1,
+            "MOTORCYCLE": 1,
+            "PASSENGER": 1,
+            "BICYCLE": 1,
+            "PEDESTRIAN": 1
+        }
+
+        risk = predict_collision_risk(input_features)
+
         segments.append(SegmentRisk(
-            segment_start=Coordinate(**route[i]),
-            segment_end=Coordinate(**route[i+1]),
-            risk_score=0.5  # ⛏️ placeholder score
+            segment_start=Coordinate(**segment_start),
+            segment_end=Coordinate(**segment_end),
+            risk_score=risk
         ))
 
-    overall = sum([s.risk_score for s in segments]) / len(segments) if segments else 0
+    overall = round(sum([s.risk_score for s in segments]) / len(segments), 4) if segments else 0.0
 
     return RouteRiskResponse(route_segments=segments, overall_risk=overall)
