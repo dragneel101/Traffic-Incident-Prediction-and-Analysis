@@ -24,8 +24,16 @@ const RoutePlanner = () => {
     }
   };
 
+
+  // Manual test button to trigger spinner
+  const handleTestSpinner = () => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 5000); // Simulate 2s load
+  };
+
+
   return (
-    <div className="mt-6 relative"> {/* Wrapper with relative for spinner positioning */}
+    <div className="mt-6"> {/* Removed relative from here */}
       <h2 className="text-xl font-semibold mb-4 text-indigo-600">
         🛣️ Route-Based Risk Planner
       </h2>
@@ -41,10 +49,6 @@ const RoutePlanner = () => {
           onSelect={(coords) => setEnd(coords)}
         />
       </div>
-      <button onClick={() => setLoading(!loading)} className="px-4 py-2 bg-gray-300 rounded">
-  Toggle Spinner
-</button>
-
 
       {/* Predict button */}
       <div className="flex gap-4 mb-4">
@@ -55,6 +59,12 @@ const RoutePlanner = () => {
         >
           Predict Route Risk
         </button>
+        <button
+          className="bg-gray-500 text-white px-4 py-2 rounded"
+          onClick={handleTestSpinner}
+        >
+          Test Spinner
+        </button>
         {(!start || !end) && (
           <span className="text-gray-600 text-sm pt-2">
             Click to drop pins for start and end
@@ -62,17 +72,17 @@ const RoutePlanner = () => {
         )}
       </div>
 
-      {/* Map with route and segments */}
-      <MapView
-        start={start}
-        end={end}
-        setStart={setStart}
-        setEnd={setEnd}
-        segments={segments}
-      />
-
-      {/* Spinner overlay */}
-      {loading && <Spinner fullscreen />}
+      {/* Map with overlay wrapper */}
+      <div className="relative">
+        <MapView
+          start={start}
+          end={end}
+          setStart={setStart}
+          setEnd={setEnd}
+          segments={segments}
+        />
+        {loading && <Spinner fullscreen />}
+      </div>
     </div>
   );
 };
