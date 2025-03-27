@@ -3,16 +3,34 @@ import React, {
   useEffect
  } from "react";
 import {
+  CircleMarker,
   MapContainer,
   TileLayer,
   Marker,
   Polyline,
+  Popup,
   Tooltip,
   useMapEvents,
   useMap
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import axios from "axios";
+import RiskSegmentPopup from "./RiskSegmentPopup";
+
+//reverse geo-code
+const reverseGeocode = async (latitude, longitude) => {
+  try {
+    const res = await axios.get("https://nominatim.openstreetmap.org/reverse", {
+      params: { format: "json", lat: latitude, lon: longitude },
+      headers: { "Accept-Language": "en" },
+    });
+    return res.data.display_name || "";
+  } catch (err) {
+    console.error(err);
+    return "";
+  }
+};
 
 //to zoom into bounds
 const AutoFitBounds = ({ segments }) => {
@@ -84,15 +102,18 @@ const redIcon = new L.Icon({
 });
 
 // Click handler to drop markers
-const DualMarkerHandler = ({ start, end, setStart, setEnd }) => {
+const DualMarkerHandler = ({ start, end, setStart, setEnd, onStartSelect, onEndSelect }) => {
   useMapEvents({
-    click(e) {
+    async click(e) {
       const { lat, lng } = e.latlng;
+      const address = await reverseGeocode(lat, lng);
 
       if (!start) {
         setStart({ latitude: lat, longitude: lng });
+        if (onStartSelect) onStartSelect(address, { latitude: lat, longitude: lng });
       } else if (!end) {
         setEnd({ latitude: lat, longitude: lng });
+        if (onEndSelect) onEndSelect(address, { latitude: lat, longitude: lng });
       }
     },
   });
@@ -101,7 +122,7 @@ const DualMarkerHandler = ({ start, end, setStart, setEnd }) => {
 };
 
 // Main component
-const MapView = ({ start, end, setStart, setEnd, segments = [] }) => {
+const MapView = ({ start, end, setStart, setEnd, segments = [], onStartSelect, onEndSelect }) => {
   const center = start || end || { latitude: 43.65, longitude: -79.38 };
 
   const getColor = (risk) => {
@@ -133,6 +154,8 @@ const MapView = ({ start, end, setStart, setEnd, segments = [] }) => {
           end={end}
           setStart={setStart}
           setEnd={setEnd}
+          onStartSelect={onStartSelect}
+          onEndSelect={onEndSelect}
         />
 
         {/* Start Marker */}
@@ -176,17 +199,37 @@ const MapView = ({ start, end, setStart, setEnd, segments = [] }) => {
           </Marker>
         )}
 
-        {/* Risk-colored segments */}
-        {segments.map((seg, idx) => (
-          <Polyline
-            key={idx}
-            positions={[
-              [seg.segment_start.latitude, seg.segment_start.longitude],
-              [seg.segment_end.latitude, seg.segment_end.longitude],
-            ]}
-            pathOptions={{ color: getColor(seg.risk_score), weight: 6 }}
-          />
-        ))}
+
+
+          {segments.map((seg, idx) => (
+            <React.Fragment key={idx}>
+              {/* Colored segment */}
+              <Polyline
+                positions={[
+                  [seg.segment_start.latitude, seg.segment_start.longitude],
+                  [seg.segment_end.latitude, seg.segment_end.longitude],
+                ]}
+                pathOptions={{ color: getColor(seg.risk_score), weight: 6 }}
+              >
+                <Popup>
+                  <RiskSegmentPopup riskScore={seg.risk_score} />
+                </Popup>
+              </Polyline>
+
+              {/* Circle Marker at segment end to highlight boundaries */}
+              <CircleMarker
+                center={[seg.segment_end.latitude, seg.segment_end.longitude]}
+                radius={5}
+                pathOptions={{
+                  color: "black",
+                  weight: 2,
+                  fillColor: "white",
+                  fillOpacity: 1,
+                }}
+              />
+            </React.Fragment>
+          ))}
+
       </MapContainer>
     </div>
   );

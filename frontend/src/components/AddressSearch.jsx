@@ -12,6 +12,11 @@ const AddressSearch = forwardRef(({ label, onSelect }, ref) => {
       setResults([]);
       setShowDropdown(false);
     },
+    setAddress(address) {
+      setQuery(address);
+      setResults([]);
+      setShowDropdown(false);
+    },
   }));
 
   useEffect(() => {

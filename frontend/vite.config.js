@@ -7,6 +7,6 @@ export default defineConfig({
     host: "10.0.0.12",
     port: 5173,
     open: true,
-    allowedHosts: ["testing.khaitu.ca"],
+    allowedHosts: ["testing.khaitu.ca", "api.khaitu.ca"],
   }
 });

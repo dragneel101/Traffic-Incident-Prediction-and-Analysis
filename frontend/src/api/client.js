@@ -1,11 +1,9 @@
-// src/api/client.js
+
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL: 'http://localhost:8000/', // Adjust if backend is hosted elsewhere
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL:"https://api.khaitu.ca",
+  
 });
-
+console.log('Axios client baseURL:', client.defaults.baseURL);
 export default client;

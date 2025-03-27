@@ -4,6 +4,7 @@ import { getRouteRisk } from "../api/predict";
 import AddressSearch from "./AddressSearch";
 import SpinnerPortal from "./SpinnerPortal"; // Updated to use portal-based spinner
 import RiskLegend from "./RiskLegend";
+import axios from "axios";
 
 const RoutePlanner = () => {
   const [start, setStart] = useState(null);       // Start coordinates
@@ -12,6 +13,7 @@ const RoutePlanner = () => {
   const [loading, setLoading] = useState(false);  // Spinner toggle
   const startRef = useRef();
   const endRef = useRef();
+
 
   // Trigger route risk prediction from backend
   const handlePredict = async () => {
@@ -88,6 +90,14 @@ const RoutePlanner = () => {
         setStart={setStart}
         setEnd={setEnd}
         segments={segments}
+        onStartSelect={(address, coords) => {
+          setStart(coords);
+          if (startRef.current) startRef.current.setAddress(address);
+        }}
+        onEndSelect={(address, coords) => {
+          setEnd(coords);
+          if (endRef.current) endRef.current.setAddress(address);
+        }}
         
       />
 

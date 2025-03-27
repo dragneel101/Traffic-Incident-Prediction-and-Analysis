@@ -1,16 +1,18 @@
 import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
 import RoutePlanner from "./components/RoutePlanner";
+import LandingPage from "./components/LandingPage";
 
 function App() {
   return (
-    <div className="min-h-screen p-6">
-      <header className="text-2xl font-semibold mb-4 text-indigo-600">
-        🚦 Route-Based Collision Risk Predictor
-      </header>
-      <main>
-        <RoutePlanner />
-      </main>
-    </div>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/route-planner" element={<RoutePlanner />} />
+      </Routes>
+    </Router>
   );
 }
 
