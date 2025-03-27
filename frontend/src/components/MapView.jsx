@@ -1,14 +1,10 @@
-import React, { 
-  useState,
-  useEffect
- } from "react";
+import React, { useState, useEffect } from "react";
 import {
   CircleMarker,
+  GeoJSON,
   MapContainer,
   TileLayer,
   Marker,
-  Polyline,
-  Popup,
   Tooltip,
   useMapEvents,
   useMap
@@ -18,7 +14,7 @@ import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import RiskSegmentPopup from "./RiskSegmentPopup";
 
-//reverse geo-code
+// ---------------------- 🔄 Reverse Geocode Helper ----------------------
 const reverseGeocode = async (latitude, longitude) => {
   try {
     const res = await axios.get("https://nominatim.openstreetmap.org/reverse", {
@@ -32,47 +28,34 @@ const reverseGeocode = async (latitude, longitude) => {
   }
 };
 
-//to zoom into bounds
-const AutoFitBounds = ({ segments }) => {
+// ---------------------- 🔍 Auto Fit Bounds ----------------------
+const AutoFitBounds = ({ geojson }) => {
   const map = useMap();
-
   useEffect(() => {
-    if (!segments || segments.length === 0) return;
-
+    if (!geojson?.features?.length) return;
     const bounds = L.latLngBounds([]);
-
-    segments.forEach(seg => {
-      bounds.extend([seg.segment_start.latitude, seg.segment_start.longitude]);
-      bounds.extend([seg.segment_end.latitude, seg.segment_end.longitude]);
-    });
-
-    map.fitBounds(bounds, { padding: [50, 50] });
-  }, [segments, map]);
-
+    geojson.features.forEach((f) =>
+      f.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lat, lng]))
+    );
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
+  }, [geojson, map]);
   return null;
 };
 
-
-//zoom to bounds when markers are placed
+// ---------------------- 🗺️ Zoom to Markers ----------------------
 const FitToMarkers = ({ start, end }) => {
   const map = useMap();
-
   useEffect(() => {
     if (!start && !end) return;
-
     const bounds = L.latLngBounds([]);
-
     if (start) bounds.extend([start.latitude, start.longitude]);
     if (end) bounds.extend([end.latitude, end.longitude]);
-
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
   }, [start, end]);
-
   return null;
 };
-// Fix default Leaflet icon path
+
+// ---------------------- 📍 Icons ----------------------
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: new URL("leaflet/dist/images/marker-icon-2x.png", import.meta.url),
@@ -80,28 +63,23 @@ L.Icon.Default.mergeOptions({
   shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url),
 });
 
-// Custom icons
 const greenIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
-  shadowUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 });
 
 const redIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-  shadowUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 });
 
-// Click handler to drop markers
+// ---------------------- 🖱️ Click to Drop Start/End Markers ----------------------
 const DualMarkerHandler = ({ start, end, setStart, setEnd, onStartSelect, onEndSelect }) => {
   useMapEvents({
     async click(e) {
@@ -117,22 +95,32 @@ const DualMarkerHandler = ({ start, end, setStart, setEnd, onStartSelect, onEndS
       }
     },
   });
-
   return null;
 };
 
-// Main component
-const MapView = ({ start, end, setStart, setEnd, segments = [], onStartSelect, onEndSelect }) => {
+// ---------------------- 🗺️ Main Component ----------------------
+const MapView = ({ start, end, setStart, setEnd, geojson = null, onStartSelect, onEndSelect }) => {
   const center = start || end || { latitude: 43.65, longitude: -79.38 };
 
-  const getColor = (risk) => {
-    console.log("🧪 Segment risk:", risk);
-    if (risk < 0.2) return "green";
-    if (risk < 0.4) return "blue";
-    if (risk < 0.6) return "yellow";
-    if (risk < 0.8) return "orange";
-    return "red";
+  // Risk level color mapping
+  const getRiskLevel = (score) => {
+    if (score < 0.3) return "low";
+    if (score < 0.6) return "medium";
+    return "high";
   };
+
+  const RISK_COLORS = {
+    low: "#4caf50",
+    medium: "#ff9800",
+    high: "#f44336"
+  };
+
+  // 🔥 Identify safest (lowest risk) route
+  const mainRouteIndex =
+    geojson?.features?.length > 0
+      ? geojson.features.reduce((bestIdx, feature, idx, arr) =>
+          feature.properties.risk_score < arr[bestIdx].properties.risk_score ? idx : bestIdx, 0)
+      : -1;
 
   return (
     <div className="h-96 mt-6 rounded overflow-hidden shadow-md border">
@@ -142,13 +130,15 @@ const MapView = ({ start, end, setStart, setEnd, segments = [], onStartSelect, o
         scrollWheelZoom={true}
         style={{ height: "100%", width: "100%" }}
       >
+        {/* Map base tiles */}
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="© OpenStreetMap contributors"
         />
-        <AutoFitBounds segments={segments} />
-        <FitToMarkers start={start} end={end} />
 
+        {/* Dynamic map zooms */}
+        <AutoFitBounds geojson={geojson} />
+        <FitToMarkers start={start} end={end} />
         <DualMarkerHandler
           start={start}
           end={end}
@@ -167,17 +157,14 @@ const MapView = ({ start, end, setStart, setEnd, segments = [], onStartSelect, o
             eventHandlers={{
               dragend: (e) => {
                 const { lat, lng } = e.target.getLatLng();
-                console.log("🟢 Updated Start:", lat, lng); // or 🔴 End
                 setStart({ latitude: lat, longitude: lng });
               },
             }}
           >
-              <Tooltip permanent direction="top" offset={[0, -30]}>
-                <strong>Start</strong>
-              </Tooltip>
+            <Tooltip permanent direction="top" offset={[0, -30]}>
+              <strong>Start</strong>
+            </Tooltip>
           </Marker>
-          
-          
         )}
 
         {/* End Marker */}
@@ -193,43 +180,39 @@ const MapView = ({ start, end, setStart, setEnd, segments = [], onStartSelect, o
               },
             }}
           >
-              <Tooltip permanent direction="top" offset={[0, -30]}>
-                <strong>End</strong>
-              </Tooltip>
+            <Tooltip permanent direction="top" offset={[0, -30]}>
+              <strong>End</strong>
+            </Tooltip>
           </Marker>
         )}
 
+        {/* 🚦 Render Routes with Risk Color + Main Highlight */}
+        {geojson?.features?.map((feature, index) => {
+          const risk = getRiskLevel(feature.properties.risk_score);
+          const isMain = index === mainRouteIndex;
 
-
-          {segments.map((seg, idx) => (
-            <React.Fragment key={idx}>
-              {/* Colored segment */}
-              <Polyline
-                positions={[
-                  [seg.segment_start.latitude, seg.segment_start.longitude],
-                  [seg.segment_end.latitude, seg.segment_end.longitude],
-                ]}
-                pathOptions={{ color: getColor(seg.risk_score), weight: 6 }}
-              >
-                <Popup>
-                  <RiskSegmentPopup riskScore={seg.risk_score} />
-                </Popup>
-              </Polyline>
-
-              {/* Circle Marker at segment end to highlight boundaries */}
-              <CircleMarker
-                center={[seg.segment_end.latitude, seg.segment_end.longitude]}
-                radius={5}
-                pathOptions={{
-                  color: "black",
-                  weight: 2,
-                  fillColor: "white",
-                  fillOpacity: 1,
-                }}
-              />
-            </React.Fragment>
-          ))}
-
+          return (
+            <GeoJSON
+              key={index}
+              data={feature}
+              style={{
+                color: isMain ? RISK_COLORS[risk] : "#555555",
+                weight: isMain ? 6 : 4,
+                opacity: isMain ? 0.9 : 0.8,
+                dashArray: null
+              }}
+              onEachFeature={(feature, layer) => {
+                const props = feature.properties;
+                layer.bindPopup(`
+                  <b>Route ${props.route_id}</b><br>
+                  Risk Score: ${props.risk_score}<br>
+                  Distance: ${(props.distance / 1000).toFixed(2)} km<br>
+                  Duration: ${(props.duration / 60).toFixed(1)} min
+                `);
+              }}
+            />
+          );
+        })}
       </MapContainer>
     </div>
   );

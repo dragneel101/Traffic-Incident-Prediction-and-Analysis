@@ -4,12 +4,12 @@ import { getRouteRisk } from "../api/predict";
 import AddressSearch from "./AddressSearch";
 import SpinnerPortal from "./SpinnerPortal"; // Updated to use portal-based spinner
 import RiskLegend from "./RiskLegend";
-import axios from "axios";
+import { getMultipleRouteRisks } from "../api/predict";
 
 const RoutePlanner = () => {
   const [start, setStart] = useState(null);       // Start coordinates
   const [end, setEnd] = useState(null);           // End coordinates
-  const [segments, setSegments] = useState([]);   // Route risk segments
+  const [geojson, setGeojson] = useState(null);   // Route risk segments
   const [loading, setLoading] = useState(false);  // Spinner toggle
   const startRef = useRef();
   const endRef = useRef();
@@ -20,8 +20,8 @@ const RoutePlanner = () => {
     if (!start || !end) return;
     setLoading(true);
     try {
-      const response = await getRouteRisk({ start, end });
-      setSegments(response.route_segments);
+      const response = await getMultipleRouteRisks({ start, end });
+      setGeojson(response);
     } catch (err) {
       console.error("Prediction error:", err);
     } finally {
@@ -33,7 +33,7 @@ const RoutePlanner = () => {
     const handleReset = () => {
       setStart(null);
       setEnd(null);
-      setSegments([]);
+      setGeojson(null);
       if (startRef.current) startRef.current.clear();
       if (endRef.current) endRef.current.clear();
     };
@@ -89,7 +89,7 @@ const RoutePlanner = () => {
         end={end}
         setStart={setStart}
         setEnd={setEnd}
-        segments={segments}
+        geojson={geojson}
         onStartSelect={(address, coords) => {
           setStart(coords);
           if (startRef.current) startRef.current.setAddress(address);

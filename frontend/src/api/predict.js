@@ -38,3 +38,15 @@ export async function getRouteRisk({ start, end }) {
   });
   return response.data;
 }
+
+/**
+ * Gets multiple alternative routes (with risk scores) from backend.
+ * Returns a GeoJSON FeatureCollection.
+ */
+export async function getMultipleRouteRisks({ start, end }) {
+  const response = await client.post('/api/predict/multiple_route_risks', {
+    start,
+    end
+  });
+  return response.data; // GeoJSON format
+}
