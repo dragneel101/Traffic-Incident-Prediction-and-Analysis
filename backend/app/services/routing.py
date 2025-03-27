@@ -1,12 +1,16 @@
 import os
 import requests
 from dotenv import load_dotenv
+from geojson import Feature, FeatureCollection, LineString
 from openrouteservice import convert
+import openrouteservice
 
 # Load environment variables
 load_dotenv()
 
 ORS_API_KEY = os.getenv("ORS_API_KEY")
+client = openrouteservice.Client(key=ORS_API_KEY)
+
 
 def get_route_coordinates(start: dict, end: dict):
     """
@@ -56,3 +60,60 @@ def get_route_coordinates(start: dict, end: dict):
 
     print(f"✅ Received {len(route_coords)} route coordinates from ORS.")
     return route_coords
+
+def get_multiple_routes(start: dict, end: dict, count: int = 3):
+    """
+    Generate multiple route options manually using detours and return as GeoJSON FeatureCollection.
+    """
+    detours = [
+        None,
+        {"latitude": start["latitude"] + 0.01, "longitude": start["longitude"] + 0.01},
+        {"latitude": start["latitude"] - 0.01, "longitude": start["longitude"] - 0.01},
+    ]
+
+    features = []
+
+    for i in range(min(count, len(detours))):
+        via = detours[i]
+        if via:
+            coords = [
+                [start["longitude"], start["latitude"]],
+                [via["longitude"], via["latitude"]],
+                [end["longitude"], end["latitude"]],
+            ]
+        else:
+            coords = [
+                [start["longitude"], start["latitude"]],
+                [end["longitude"], end["latitude"]],
+            ]
+
+        try:
+            response = client.directions(
+                coordinates=coords,
+                profile='driving-car',
+                format='geojson'
+            )
+
+            feature = response["features"][0]
+            coords_raw = feature["geometry"]["coordinates"]
+            summary = feature["properties"].get("summary", {})
+
+            # Create GeoJSON Feature
+            line = LineString(coords_raw)
+            geo_feature = Feature(
+                geometry=line,
+                properties={
+                    "route_id": i,
+                    "distance": summary.get("distance", 0),
+                    "duration": summary.get("duration", 0)
+                }
+            )
+
+            features.append(geo_feature)
+
+        except Exception as e:
+            print(f"Route {i} failed: {e}")
+            continue
+
+    print(f"✅ Generated {len(features)} GeoJSON route features")
+    return FeatureCollection(features)
