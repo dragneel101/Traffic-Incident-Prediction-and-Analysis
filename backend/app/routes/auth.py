@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -7,6 +7,7 @@ from app.database import SessionLocal
 from app.models import User
 from app.auth.utils import hash_password, verify_password
 from app.auth.jwt_handler import create_access_token
+from app.notifications.email import send_signup_email
 
 router = APIRouter()
 
@@ -22,7 +23,7 @@ class SignInRequest(BaseModel):
     password: str
 
 @router.post("/signup")
-def sign_up(data: SignUpRequest):
+def sign_up(data: SignUpRequest, background_tasks: BackgroundTasks):
     db: Session = SessionLocal()
     existing_user = db.query(User).filter(User.email == data.email).first()
     if existing_user:
@@ -35,12 +36,16 @@ def sign_up(data: SignUpRequest):
         email=data.email,
         hashed_password=hash_password(data.password),
         name=data.name,
-        phone_number=data.phone_number  # new field for phone number
+        phone_number=data.phone_number
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return {"message": "User created successfully", "user_id": new_user.id}
+    
+    # Add task to send a welcome email with a login link
+    background_tasks.add_task(send_signup_email, email_to=data.email)
+    
+    return {"message": "User created successfully! Please check your email to log in.", "user_id": new_user.id}
 
 @router.post("/signin")
 def sign_in(data: SignInRequest):

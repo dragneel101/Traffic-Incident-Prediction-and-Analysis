@@ -1,13 +1,31 @@
 import React, { useState } from "react";
+import { useNavigate, NavLink } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Placeholder for actual login logic
-    console.log("Logging in with:", { email, password });
+    try {
+      const response = await fetch("/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem("token", data.access_token);
+        // Redirect to dashboard after login
+        navigate("/dashboard");
+      } else {
+        alert(data.detail || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("An error occurred during login.");
+    }
   };
 
   return (
@@ -41,6 +59,11 @@ const Login = () => {
           Login
         </button>
       </form>
+      <div className="text-center mt-4">
+        <NavLink to="/reset-request" className="text-indigo-500 hover:underline">
+          Forgot Password?
+        </NavLink>
+      </div>
     </div>
   );
 };

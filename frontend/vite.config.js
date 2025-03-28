@@ -8,5 +8,22 @@ export default defineConfig({
     port: 5173,
     open: true,
     allowedHosts: ["testing.khaitu.ca", "api.khaitu.ca"],
+    proxy: {
+      "/auth": {
+        target: "https://api.khaitu.ca", // Adjust if your backend is hosted elsewhere
+        changeOrigin: true,
+        secure: false,
+      },
+      "/user": {
+        target: "https://api.khaitu.ca",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/password-reset": {
+        target: "https://api.khaitu.ca",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   }
 });
