@@ -15,3 +15,4 @@ psycopg2-binary  # or psycopg2
 passlib[bcrypt]  # for password hashing
 PyJWT            # for JWT creation/verification
 pydantic[email]
+fastapi-mail
