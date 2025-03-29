@@ -16,3 +16,4 @@ passlib[bcrypt]  # for password hashing
 PyJWT            # for JWT creation/verification
 pydantic[email]
 fastapi-mail
+fcntl
