@@ -37,3 +37,13 @@ def update_profile(data: ProfileUpdateRequest, current_user: User = Depends(get_
             "phone_number": user.phone_number
         }
     }
+
+
+@router.get("/profile")
+def get_profile(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "phone_number": current_user.phone_number
+    }
