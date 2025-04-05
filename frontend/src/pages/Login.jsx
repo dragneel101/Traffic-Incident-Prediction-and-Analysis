@@ -7,7 +7,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  console.log(API_URL)
+  //console.log(API_URL)
 
   const handleLogin = async (e) => {
     e.preventDefault();
