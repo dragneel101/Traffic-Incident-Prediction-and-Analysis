@@ -1,33 +1,36 @@
 // src/pages/ResetRequest.jsx
 import React, { useState } from 'react';
-const API_URL = import.meta.env.VITE_API_URL;
 import { apiClient } from '../utils/apiClient';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function ResetRequest() {
+  // State to manage form input, success message, and error message
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  /**
+   * Handles the form submission for password reset request
+   */
   const handleRequest = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent full page reload
     setMessage('');
     setError('');
+
     try {
-      const response = await apiClient(`${API_URL}/password-reset/request`, {
+      // Send POST request to backend with user's email
+      const data = await apiClient(`${API_URL}/password-reset/request`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      const data = await response.json();
 
-      if (response.ok) {
-        setMessage(data.message);
-      } else {
-        setError(data.detail || 'Error requesting reset');
-      }
+      // Display success message from backend
+      setMessage(data.message || 'A password reset email has been sent.');
     } catch (err) {
       console.error('Reset request error:', err);
-      setError('An unexpected error occurred. Please try again later.');
+      // Display meaningful error or fallback message
+      setError(err.message || 'An unexpected error occurred. Please try again later.');
     }
   };
 
@@ -37,16 +40,22 @@ function ResetRequest() {
         <h2 className="text-2xl font-bold text-indigo-700 mb-6 text-center">
           Reset Password
         </h2>
+
+        {/* Success message */}
         {message && (
           <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4">
             {message}
           </div>
         )}
+
+        {/* Error message */}
         {error && (
           <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4">
             {error}
           </div>
         )}
+
+        {/* Reset Request Form */}
         <form onSubmit={handleRequest} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -61,6 +70,7 @@ function ResetRequest() {
               className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
+
           <button
             type="submit"
             className="w-full bg-indigo-600 text-white font-semibold py-2 rounded hover:bg-indigo-700 transition"
