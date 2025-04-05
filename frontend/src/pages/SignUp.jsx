@@ -8,6 +8,9 @@ import { apiClient } from '../utils/apiClient';
 const API_URL = import.meta.env.VITE_API_URL;
 
 const SignUp = () => {
+  const navigate = useNavigate();
+
+  // Form fields and states
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [password, setPassword] = useState("");
@@ -24,10 +27,14 @@ const SignUp = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [message, setMessage] = useState("");
+
+  // Show/hide password toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const navigate = useNavigate();
 
+  /**
+   * Validates password against defined rules
+   */
   const validatePassword = (val) => {
     setPasswordChecks({
       length: val.length >= 8,
@@ -38,6 +45,9 @@ const SignUp = () => {
     });
   };
 
+  /**
+   * Calculates visual strength of the password
+   */
   const getPasswordStrength = () => {
     const score = Object.values(passwordChecks).filter(Boolean).length;
     const colors = ["bg-red-500", "bg-yellow-500", "bg-yellow-400", "bg-green-400", "bg-green-600"];
@@ -48,6 +58,9 @@ const SignUp = () => {
     };
   };
 
+  /**
+   * Final form validity check
+   */
   const isFormValid =
     Object.values(passwordChecks).every(Boolean) &&
     !emailError &&
@@ -58,6 +71,9 @@ const SignUp = () => {
     confirmPassword &&
     password === confirmPassword;
 
+  /**
+   * Submits the signup form to backend
+   */
   const handleSignUp = async (e) => {
     e.preventDefault();
 
@@ -67,9 +83,8 @@ const SignUp = () => {
     }
 
     try {
-      const response = await apiClient(`${API_URL}/auth/signup`, {
+      const data = await apiClient(`${API_URL}/auth/signup`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           password,
@@ -77,24 +92,24 @@ const SignUp = () => {
           phone_number: phoneNumber,
         }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        setMessage(data.message || "Sign up successful!");
-        setTimeout(() => {
-          navigate("/login");
-        }, 3000);
-      } else {
-        setMessage(data.detail || "Sign up failed");
-      }
+
+      setMessage(data.message || "Sign up successful!");
+
+      // Redirect to login page after short delay
+      setTimeout(() => {
+        navigate("/login");
+      }, 3000);
     } catch (err) {
       console.error("Sign up error:", err);
-      setMessage("An error occurred during sign up.");
+      setMessage(err.message || "An error occurred during sign up.");
     }
   };
 
   return (
     <div className="p-8 max-w-md mx-auto">
       <h2 className="text-3xl font-bold text-indigo-700 mb-6">Sign Up</h2>
+
+      {/* Global message */}
       {message && (
         <div
           className={`mb-4 text-center font-semibold ${
@@ -106,8 +121,10 @@ const SignUp = () => {
           {message}
         </div>
       )}
+
+      {/* Signup Form */}
       <form onSubmit={handleSignUp} className="space-y-4">
-        {/* Email */}
+        {/* Email Field */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Email</label>
           <input
@@ -125,7 +142,7 @@ const SignUp = () => {
           {emailError && <p className="text-sm text-red-500 mt-1">{emailError}</p>}
         </div>
 
-        {/* Password */}
+        {/* Password Field */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Password</label>
           <div className="relative">
@@ -145,6 +162,7 @@ const SignUp = () => {
               }}
               required
             />
+            {/* Toggle password visibility */}
             <span
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer"
@@ -153,7 +171,7 @@ const SignUp = () => {
             </span>
           </div>
 
-          {/* Password checklist */}
+          {/* Password rules & strength meter */}
           <AnimatePresence>
             {password.length > 0 && (
               <motion.div
@@ -220,6 +238,7 @@ const SignUp = () => {
               }}
               required
             />
+            {/* Toggle confirm password visibility */}
             <span
               onClick={() => setShowConfirmPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer"
@@ -232,7 +251,7 @@ const SignUp = () => {
           )}
         </div>
 
-        {/* Name */}
+        {/* Name Field */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Name</label>
           <input
@@ -243,7 +262,7 @@ const SignUp = () => {
           />
         </div>
 
-        {/* Phone */}
+        {/* Phone Number */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Phone Number</label>
           <input
@@ -260,7 +279,7 @@ const SignUp = () => {
           {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
         </div>
 
-        {/* Submit */}
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={!isFormValid}
@@ -272,7 +291,7 @@ const SignUp = () => {
         </button>
       </form>
 
-      {/* Login redirect */}
+      {/* Link to login page */}
       <div className="text-center mt-4">
         <p>
           Already have an account?{" "}

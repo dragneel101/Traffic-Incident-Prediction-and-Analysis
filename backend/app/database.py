@@ -11,7 +11,13 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Create the SQLAlchemy engine (echo=True enables SQL logging)
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=10,         # Number of connections to keep in the pool
+    max_overflow=20,      # Extra connections allowed temporarily
+    pool_timeout=30,      # Wait time before throwing TimeoutError
+    pool_pre_ping=True    # Recycle dead connections
+)
 
 # Create a session factory bound to the engine
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

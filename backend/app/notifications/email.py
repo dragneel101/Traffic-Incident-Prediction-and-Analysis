@@ -21,7 +21,7 @@ async def send_reset_email(email_to: str, reset_token: str):
     message = MessageSchema(
         subject="Password Reset Request",
         recipients=[email_to],
-        body=f"Click the link to reset your password: https://testing.khaitu.ca/reset?token={reset_token}",
+        body=f"Click the link to reset your password: https://traffic.khaitu.ca/reset?token={reset_token}",
         subtype="html"
     )
     fm = FastMail(conf)
@@ -36,7 +36,7 @@ async def send_signup_email(email_to: str):
         body=(
             "Thank you for signing up with Collision Predictor!<br/><br/>"
             "You can now log in by clicking the following link:<br/>"
-            "<a href='https://testing.khaitu.ca/login'>Login Here</a><br/><br/>"
+            "<a href='https://traffic.khaitu.ca/login'>Login Here</a><br/><br/>"
             "We are excited to have you onboard."
         ),
         subtype="html"

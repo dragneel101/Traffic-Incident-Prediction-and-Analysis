@@ -10,25 +10,41 @@ const Login = () => {
   const navigate = useNavigate();
   //console.log(API_URL)
 
+  // const handleLogin = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     const response = await apiClient(`${API_URL}/auth/signin`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ email, password }),
+  //     });
+  //     const data = await response.json();
+  //     if (response.ok) {
+  //       localStorage.setItem("token", data.access_token);
+  //       // Redirect to dashboard after login
+  //       navigate("/dashboard");
+  //     } else {
+  //       alert(data.detail || "Login failed");
+  //     }
+  //   } catch (error) {
+  //     console.error("Login error:", error);
+  //     alert("An error occurred during login.");
+  //   }
+  // };
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await apiClient(`${API_URL}/auth/signin`, {
+      const data = await apiClient(`${API_URL}/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem("token", data.access_token);
-        // Redirect to dashboard after login
-        navigate("/dashboard");
-      } else {
-        alert(data.detail || "Login failed");
-      }
+  
+      localStorage.setItem("token", data.access_token);
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
-      alert("An error occurred during login.");
+      alert("Login failed: " + error.message);
     }
   };
 
