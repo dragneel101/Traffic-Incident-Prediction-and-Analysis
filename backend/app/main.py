@@ -13,7 +13,7 @@ app = FastAPI(title="Traffic Risk Prediction API")
 # CORS setup to allow frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://traffic.khaitu.ca"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

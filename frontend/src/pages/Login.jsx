@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  console.log(API_URL)
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("/auth/signin", {
+      const response = await fetch(`${API_URL}/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
