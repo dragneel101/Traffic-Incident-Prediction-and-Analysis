@@ -86,7 +86,7 @@ const SignUp = () => {
       const data = await apiClient(`${API_URL}/auth/signup`, {
         method: "POST",
         body: JSON.stringify({
-          email,
+          email: email.toLowerCase(),
           password,
           name,
           phone_number: phoneNumber,
