@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.database import SessionLocal
-from app.models import User
+from app.models.user import User
 from app.auth.utils import hash_password, verify_password
 from app.auth.jwt_handler import create_access_token
 from app.notifications.email import send_signup_email

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
 const API_URL = import.meta.env.VITE_API_URL;
+import { apiClient } from '../utils/apiClient';
 
 
 const Login = () => {
@@ -12,7 +13,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_URL}/auth/signin`, {
+      const response = await apiClient(`${API_URL}/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

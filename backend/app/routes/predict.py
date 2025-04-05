@@ -1,88 +1,92 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from datetime import datetime
+
+# Import services
 from app.services.weather import get_weather
 from app.services.features import extract_time_features
 from app.services.distance import get_route_distance
 from app.services.predictor import predict_collision_risk
 
+# Authentication utility
+from app.auth.dependencies import get_current_user
+
+# Model for logging predictions
+from app.models.analytics import PredictionLog
+from app.database import get_db
+
 router = APIRouter()
 
-# -----------------------------
-# Route 1: Context-Aware Prediction (uses weather, time, and distance)
-# -----------------------------
 
+# Request schema for the /predict endpoint
 class PredictRequest(BaseModel):
-    start: list[float]  # Starting coordinate [lon, lat]
-    end: list[float]    # Ending coordinate [lon, lat]
-    timestamp: str      # ISO format timestamp (e.g. "2025-03-22T08:30:00")
+    start: list[float]      # Starting coordinate as [longitude, latitude]
+    end: list[float]        # Ending coordinate as [longitude, latitude]
+    timestamp: str          # ISO 8601 timestamp (e.g. "2025-03-22T08:30:00")
 
 @router.post("/predict")
-def predict_risk(data: PredictRequest):
+def predict_risk(
+    data: PredictRequest,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user)
+    
+):
     """
-    Context-aware collision risk estimation based on:
-    - Live weather at the start location
-    - Extracted time-of-day features (e.g., rush hour)
-    - Route distance using open route service
-    This returns a hand-crafted score (not ML-based).
+    Estimate collision risk using hand-crafted rules based on:
+    - Weather conditions at the start location
+    - Time-of-day (rush hour, weekday)
+    - Route distance between start and end points
+
+    Also logs the prediction request into the database for future analytics.
+    Returns the estimated collision risk as a percentage.
     """
+    print("predict test")
     try:
-        # 1. Get current weather at the starting point (lat, lon)
+        # STEP 1: Get live weather at the start location
         weather = get_weather(data.start[1], data.start[0])
 
-        # 2. Get time-based features (e.g., rush hour, weekday)
+        # STEP 2: Extract time-related features (e.g., is_rush_hour, day_of_week)
         time_features = extract_time_features(data.timestamp)
 
-        # 3. Estimate distance between start and end points (in km)
+        # STEP 3: Calculate route distance (in kilometers)
         distance_km = get_route_distance(data.start, data.end)
 
-        # 4. Combine all features
+        # STEP 4: Combine features for scoring
         features = {
             **weather,
             **time_features,
             "distance_km": distance_km
         }
 
-        # 5. Dummy scoring logic (to be replaced by real ML model)
-        score = (
-            features["temp"] * 0.01 +  # Slight risk increase with temp
-            features["is_rush_hour"] * 2 +  # Boost risk during rush hour
-            (1 if features["condition"] == "Rain" else 0) * 3  # Heavy weight if raining
+        # STEP 5: Calculate a raw score based on simple logic
+        raw_score = (
+            features["temp"] * 0.01 +                        # Slight increase with temperature
+            features["is_rush_hour"] * 2 +                  # Higher risk during rush hour
+            (1 if features["condition"] == "Rain" else 0) * 3  # Higher risk if raining
         )
 
+        # STEP 6: Convert raw score to percentage (0–100), clamped
+        percent_score = max(0, min(round(raw_score * 10), 100))
+
+        # STEP 7: Log the prediction to the database
+        log = PredictionLog(
+            user_id=user_id,
+            start_location=f"{data.start[1]},{data.start[0]}",  # Store as "lat,lon"
+            end_location=f"{data.end[1]},{data.end[0]}",
+            timestamp=datetime.fromisoformat(data.timestamp)
+        )
+        print(log)
+        db.add(log)
+        db.commit()
+        db.refresh(log)  # Refresh to get the latest data from the database
+
+        # STEP 8: Return formatted result
         return {
-            "collision_risk": round(score, 2),
-            "features_used": features
+            "collision_risk": f"{percent_score}%",  # Return risk as string percentage
+            "features_used": features               # Return input features for transparency
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# -----------------------------
-# Route 2: ML Model-Based Prediction
-# -----------------------------
-
-class CollisionInput(BaseModel):
-    hour: int = Field(..., ge=0, le=23, description="Hour of day (0-23)")
-    latitude: float
-    longitude: float
-    temp_c: float
-    precip_mm: float
-    AUTOMOBILE: int = Field(..., ge=0, le=1)
-    MOTORCYCLE: int = Field(..., ge=0, le=1)
-    PASSENGER: int = Field(..., ge=0, le=1)
-    BICYCLE: int = Field(..., ge=0, le=1)
-    PEDESTRIAN: int = Field(..., ge=0, le=1)
-
-@router.post("/predict_model")
-def predict_with_model(data: CollisionInput):
-    """
-    Predict collision probability using the trained ML model.
-    Input must include weather, location, and vehicle involvement flags.
-    Returns probability from 0.0 (safe) to 1.0 (high collision risk).
-    """
-    try:
-        prob = predict_collision_risk(data.dict())
-        return {"collision_probability": prob}
-    except Exception as e:
+        # Catch any unexpected errors and return a 500 error
         raise HTTPException(status_code=500, detail=str(e))

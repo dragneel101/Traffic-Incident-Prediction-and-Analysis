@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from app.auth.jwt_handler import decode_access_token
 from app.database import SessionLocal
-from app.models import User
+from app.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/signin")
 

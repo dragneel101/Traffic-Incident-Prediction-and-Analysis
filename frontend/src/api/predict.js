@@ -44,9 +44,28 @@ export async function getRouteRisk({ start, end }) {
  * Returns a GeoJSON FeatureCollection.
  */
 export async function getMultipleRouteRisks({ start, end }) {
-  const response = await client.post('/api/predict/multiple_route_risks', {
-    start,
-    end
-  });
-  return response.data; // GeoJSON format
+  // Retrieve the token from localStorage (or other storage method)
+  const token = localStorage.getItem("token");
+  console.log("Token:", localStorage.getItem("token"));
+  if (!token) {
+    throw new Error("Token is missing or invalid.");
+  }
+
+  const headers = {
+    'Authorization': `Bearer ${token}`,  // Add the token to the Authorization header
+    'Content-Type': 'application/json'   // Make sure the content type is set
+  };
+
+  try {
+    // Make the POST request with the headers
+    const response = await client.post('/api/predict/multiple_route_risks', {
+      start,
+      end
+    }, { headers });
+
+    return response.data;  // GeoJSON format
+  } catch (error) {
+    console.error("Error fetching multiple route risks:", error);
+    throw error;  // Rethrow the error to be handled elsewhere
+  }
 }

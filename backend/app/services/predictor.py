@@ -18,10 +18,10 @@ def predict_collision_risk(input_data: dict) -> float:
     """Takes a dictionary of input features and returns collision probability"""
     features = pd.DataFrame([input_data], columns=FEATURE_ORDER)
     prob = model.predict_proba(features)[0][1]  # Probability of class 1 (collision)
-    return round(float(prob), 4)
+    return round(float(prob)*100, 2)    # Convert to percentage and round
 
 
-from app.services.features import extract_features_for_point
+
 
 def evaluate_route_risk(coords: list, sample_step: int = 10) -> float:
     """
@@ -43,5 +43,5 @@ def evaluate_route_risk(coords: list, sample_step: int = 10) -> float:
     if not risks:
         return 0.0
 
-    return round(float(np.mean(risks)), 4)
+    return round(float(np.mean(risks)), 2)
 

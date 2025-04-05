@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 const API_URL = import.meta.env.VITE_API_URL;
+import { apiClient } from '../utils/apiClient';
 
 function ResetConfirm() {
   const [newPassword, setNewPassword] = useState('');
@@ -16,7 +17,7 @@ function ResetConfirm() {
     setMessage('');
     setError('');
     try {
-      const response = await fetch(`${API_URL}/password-reset/confirm`, {
+      const response = await apiClient(`${API_URL}/password-reset/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, new_password: newPassword }),

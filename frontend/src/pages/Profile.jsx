@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 const API_URL = import.meta.env.VITE_API_URL;
+import { apiClient } from '../utils/apiClient';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/user/profile`, {
+        const response = await apiClient(`${API_URL}/user/profile`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -58,7 +59,7 @@ const Profile = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/user/profile`, {
+      const response = await apiClient(`${API_URL}/user/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

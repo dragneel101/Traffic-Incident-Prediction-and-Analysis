@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from datetime import timedelta
 from app.database import SessionLocal
-from app.models import User
+from app.models.user import User
 from app.auth.jwt_handler import create_access_token, decode_access_token
 from app.auth.utils import hash_password
 from app.notifications.email import send_reset_email

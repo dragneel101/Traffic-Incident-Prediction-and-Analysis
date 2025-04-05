@@ -1,87 +1,92 @@
-// src/pages/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
+import TotalCountCard from '../components/ui/TotalCountCard';
+import FrequentLocations from '../components/ui/FrequentLocations';
+import PredictionChart from '../components/ui/PredictionChart';
+import RecentActivity from '../components/ui/RecentActivity';
+import { apiClient } from '../utils/apiClient';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+import {
+  getTotalPredictions,
+  getTimeseries,
+  getFrequentLocations,
+  getRecentActivity
+} from '../api/client';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'; // Adjust to your setup
 
 const Dashboard = () => {
-  const [userName, setUserName] = useState('User');
+  const [userName, setUserName] = useState('');
+  const [totalPredictions, setTotalPredictions] = useState(0);
+  const [timeseries, setTimeseries] = useState({});
+  const [frequent, setFrequent] = useState({ most_common_starts: [], most_common_ends: [] });
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Optionally, fetch user details from backend to set the userName
-  // useEffect(() => {
-  //   // fetch user profile and setUserName(...)
-  // }, []);
+  // Fetch analytics data
+  useEffect(() => {
+    getTotalPredictions().then(data => setTotalPredictions(data.count));
+    getFrequentLocations().then(setFrequent);
+    getTimeseries().then(setTimeseries);
+    getRecentActivity().then(setRecentActivity);
+  }, []);
 
-  // Dummy data for the chart
-  const chartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Collision Predictions',
-        data: [12, 19, 3, 5, 2, 3],
-        borderColor: 'rgba(79,70,229,1)', // indigo-600
-        backgroundColor: 'rgba(79,70,229,0.2)',
-        tension: 0.4,
-      },
-    ],
-  };
+  // Fetch user profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await apiClient(`${API_URL}/user/profile`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setUserName(data.name);
+        } else {
+          setError(data.detail || 'Failed to fetch profile.');
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        setError('An error occurred while fetching profile.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Monthly Collision Predictions',
-      },
-    },
-  };
+    fetchProfile();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       {/* Welcome Banner */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h1 className="text-3xl font-bold text-indigo-700">Hello, {userName}!</h1>
+        <h1 className="text-3xl font-bold text-indigo-700">
+          {loading ? 'Loading...' : `Hello, ${userName || 'User'}!`}
+        </h1>
+        {error && <p className="text-red-500 mt-1">{error}</p>}
         <p className="text-gray-600 mt-2">
-          Welcome to your dashboard. Here’s a quick overview of your collision prediction stats.
+          Welcome to your dashboard. Here's a quick overview of your prediction activity.
         </p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-gray-700">Total Predictions</h2>
-          <p className="text-3xl font-bold text-indigo-600 mt-2">123</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-gray-700">High Risk Routes</h2>
-          <p className="text-3xl font-bold text-indigo-600 mt-2">5</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-gray-700">Recent Collisions</h2>
-          <p className="text-3xl font-bold text-indigo-600 mt-2">2</p>
-        </div>
+        <TotalCountCard total={totalPredictions} />
+        <FrequentLocations frequent={frequent} />
       </div>
 
-      {/* Collision Predictions Chart */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <Line data={chartData} options={chartOptions} />
-      </div>
+      {/* Time Series Chart */}
+      <PredictionChart timeseries={timeseries} />
 
-      {/* Quick Access Shortcuts */}
+      {/* Recent Activity */}
+      <RecentActivity recentActivity={recentActivity} />
+
+      {/* Quick Access Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Link
           to="/route-planner"
@@ -101,43 +106,6 @@ const Dashboard = () => {
         >
           Reports
         </Link>
-      </div>
-
-      {/* Map & Heatmap Placeholder */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold text-gray-700 mb-2">Map & Heatmap</h2>
-        <div className="h-64 bg-gray-200 flex items-center justify-center rounded">
-          <p className="text-gray-600">Map and Heatmap Placeholder</p>
-        </div>
-      </div>
-
-      {/* Recent Activity / Notifications */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">Recent Activity</h2>
-        <ul className="space-y-2">
-          <li className="border-b pb-2">
-            <p className="text-gray-700">Collision prediction for Route A updated.</p>
-            <span className="text-sm text-gray-500">2 hours ago</span>
-          </li>
-          <li className="border-b pb-2">
-            <p className="text-gray-700">New high risk alert on Route B.</p>
-            <span className="text-sm text-gray-500">5 hours ago</span>
-          </li>
-          <li>
-            <p className="text-gray-700">Your profile was updated successfully.</p>
-            <span className="text-sm text-gray-500">1 day ago</span>
-          </li>
-        </ul>
-      </div>
-
-      {/* User Tips & Help */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-gray-700 mb-2">Tips & Help</h2>
-        <p className="text-gray-600">
-          - Click on a card to view more details.<br />
-          - Use the route planner to check collision predictions before traveling.<br />
-          - Regularly update your profile for personalized recommendations.
-        </p>
       </div>
     </div>
   );

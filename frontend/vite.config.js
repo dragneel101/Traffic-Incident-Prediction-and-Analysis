@@ -24,6 +24,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/api": {
+        target: "https://trafficapi.khaitu.ca", // Proxy all API calls
+        changeOrigin: true,
+        secure: false,
+      },
     },
   }
 });

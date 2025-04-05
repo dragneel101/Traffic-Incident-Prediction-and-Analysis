@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.auth.dependencies import get_current_user
 from app.database import SessionLocal
-from app.models import User
+from app.models.user import User
 
 router = APIRouter()
 

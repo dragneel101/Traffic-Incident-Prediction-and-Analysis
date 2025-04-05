@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { apiClient } from '../utils/apiClient';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -66,7 +67,7 @@ const SignUp = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/auth/signup`, {
+      const response = await apiClient(`${API_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
