@@ -1,68 +1,19 @@
 import React, { useState, useEffect } from "react";
 import {
-  CircleMarker,
-  GeoJSON,
   MapContainer,
   TileLayer,
   Marker,
   Tooltip,
+  GeoJSON,
   useMapEvents,
-  useMap
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import RiskSegmentPopup from "./RiskSegmentPopup";
 
-// ---------------------- 🔄 Reverse Geocode Helper ----------------------
-const reverseGeocode = async (latitude, longitude) => {
-  try {
-    const res = await axios.get("https://nominatim.openstreetmap.org/reverse", {
-      params: { format: "json", lat: latitude, lon: longitude },
-      headers: { "Accept-Language": "en" },
-    });
-    return res.data.display_name || "";
-  } catch (err) {
-    console.error(err);
-    return "";
-  }
-};
-
-// ---------------------- 🔍 Auto Fit Bounds ----------------------
-const AutoFitBounds = ({ geojson }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (!geojson?.features?.length) return;
-    const bounds = L.latLngBounds([]);
-    geojson.features.forEach((f) =>
-      f.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lat, lng]))
-    );
-    if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
-  }, [geojson, map]);
-  return null;
-};
-
-// ---------------------- 🗺️ Zoom to Markers ----------------------
-const FitToMarkers = ({ start, end }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (!start && !end) return;
-    const bounds = L.latLngBounds([]);
-    if (start) bounds.extend([start.latitude, start.longitude]);
-    if (end) bounds.extend([end.latitude, end.longitude]);
-    if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
-  }, [start, end]);
-  return null;
-};
-
-// ---------------------- 📍 Icons ----------------------
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: new URL("leaflet/dist/images/marker-icon-2x.png", import.meta.url),
-  iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url),
-  shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url),
-});
-
+// Icons
 const greenIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
@@ -79,76 +30,111 @@ const redIcon = new L.Icon({
   popupAnchor: [1, -34],
 });
 
-// ---------------------- 🖱️ Click to Drop Start/End Markers ----------------------
+// Reverse geocode
+const reverseGeocode = async (lat, lon) => {
+  try {
+    const res = await axios.get("https://nominatim.openstreetmap.org/reverse", {
+      params: { format: "json", lat, lon },
+    });
+    return res.data.display_name || "";
+  } catch {
+    return "";
+  }
+};
+
+// Marker click logic
 const DualMarkerHandler = ({ start, end, setStart, setEnd, onStartSelect, onEndSelect }) => {
   useMapEvents({
     async click(e) {
       const { lat, lng } = e.latlng;
       const address = await reverseGeocode(lat, lng);
-
       if (!start) {
         setStart({ latitude: lat, longitude: lng });
-        if (onStartSelect) onStartSelect(address, { latitude: lat, longitude: lng });
+        onStartSelect?.(address, { latitude: lat, longitude: lng });
       } else if (!end) {
         setEnd({ latitude: lat, longitude: lng });
-        if (onEndSelect) onEndSelect(address, { latitude: lat, longitude: lng });
+        onEndSelect?.(address, { latitude: lat, longitude: lng });
       }
     },
   });
   return null;
 };
 
-// ---------------------- 🗺️ Main Component ----------------------
-const MapView = ({ start, end, setStart, setEnd, geojson = null, onStartSelect, onEndSelect }) => {
+// Bounds handlers
+const AutoFitBounds = ({ geojson }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (!geojson?.features?.length) return;
+    const bounds = L.latLngBounds([]);
+    geojson.features.forEach((f) =>
+      f.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lat, lng]))
+    );
+    bounds.isValid() && map.fitBounds(bounds, { padding: [50, 50] });
+  }, [geojson, map]);
+  return null;
+};
+
+const FitToMarkers = ({ start, end }) => {
+  const map = useMap();
+  useEffect(() => {
+    const bounds = L.latLngBounds([]);
+    if (start) bounds.extend([start.latitude, start.longitude]);
+    if (end) bounds.extend([end.latitude, end.longitude]);
+    bounds.isValid() && map.fitBounds(bounds, { padding: [50, 50] });
+  }, [start, end]);
+  return null;
+};
+
+const getRiskLevel = (score) => (score < 0.3 ? "low" : score < 0.6 ? "medium" : "high");
+const RISK_COLORS = { low: "#4caf50", medium: "#ff9800", high: "#f44336" };
+
+const MapView = ({ start, end, setStart, setEnd, geojson, onStartSelect, onEndSelect }) => {
   const center = start || end || { latitude: 43.65, longitude: -79.38 };
+  const [showTraffic, setShowTraffic] = useState(true);
 
-  // Risk level color mapping
-  const getRiskLevel = (score) => {
-    if (score < 0.3) return "low";
-    if (score < 0.6) return "medium";
-    return "high";
-  };
-
-  const RISK_COLORS = {
-    low: "#4caf50",
-    medium: "#ff9800",
-    high: "#f44336"
-  };
-
-  // 🔥 Identify safest (lowest risk) route
   const mainRouteIndex =
-    geojson?.features?.length > 0
-      ? geojson.features.reduce((bestIdx, feature, idx, arr) =>
-          feature.properties.risk_score < arr[bestIdx].properties.risk_score ? idx : bestIdx, 0)
-      : -1;
+    geojson?.features?.reduce((bestIdx, feature, idx, arr) =>
+      feature.properties.risk_score < arr[bestIdx].properties.risk_score ? idx : bestIdx, 0) ?? -1;
 
   return (
-    <div className="h-96 mt-6 rounded overflow-hidden shadow-md border">
+    <div className="relative mt-6 rounded shadow-md border h-[600px]"> {/* Increased height */}
+      {/* Toggle Button */}
+      <div className="absolute top-3 right-3 z-[999]">
+        <button
+          onClick={() => setShowTraffic((prev) => !prev)}
+          className="px-3 py-1 text-sm bg-blue-600 text-white rounded shadow hover:bg-blue-700"
+        >
+          {showTraffic ? "Hide Traffic" : "Show Traffic"}
+        </button>
+      </div>
+
       <MapContainer
         center={[center.latitude, center.longitude]}
         zoom={13}
-        scrollWheelZoom={true}
+        scrollWheelZoom
         style={{ height: "100%", width: "100%" }}
       >
-        {/* Map base tiles */}
+        {/* Optional: comment out OSM base
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /> */}
+
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="© OpenStreetMap contributors"
+          url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+          attribution='©OpenStreetMap, ©CartoDB'
         />
 
-        {/* Dynamic map zooms */}
+        {showTraffic && (
+          <TileLayer
+            url="https://mt1.google.com/vt/lyrs=h,traffic&x={x}&y={y}&z={z}"
+            attribution="Traffic data © Google"
+            opacity={0.8}
+          />
+        )}
+
         <AutoFitBounds geojson={geojson} />
         <FitToMarkers start={start} end={end} />
-        <DualMarkerHandler
-          start={start}
-          end={end}
-          setStart={setStart}
-          setEnd={setEnd}
-          onStartSelect={onStartSelect}
-          onEndSelect={onEndSelect}
-        />
+        <DualMarkerHandler {...{ start, end, setStart, setEnd, onStartSelect, onEndSelect }} />
 
-        {/* Start Marker */}
+        {/* Markers */}
         {start && (
           <Marker
             position={[start.latitude, start.longitude]}
@@ -166,8 +152,6 @@ const MapView = ({ start, end, setStart, setEnd, geojson = null, onStartSelect, 
             </Tooltip>
           </Marker>
         )}
-
-        {/* End Marker */}
         {end && (
           <Marker
             position={[end.latitude, end.longitude]}
@@ -186,20 +170,18 @@ const MapView = ({ start, end, setStart, setEnd, geojson = null, onStartSelect, 
           </Marker>
         )}
 
-        {/* 🚦 Render Routes with Risk Color + Main Highlight */}
+        {/* Routes */}
         {geojson?.features?.map((feature, index) => {
           const risk = getRiskLevel(feature.properties.risk_score);
           const isMain = index === mainRouteIndex;
-
           return (
             <GeoJSON
               key={index}
               data={feature}
               style={{
-                color: isMain ? RISK_COLORS[risk] : "#555555",
+                color: isMain ? RISK_COLORS[risk] : "#555",
                 weight: isMain ? 6 : 4,
-                opacity: isMain ? 0.9 : 0.8,
-                dashArray: null
+                opacity: isMain ? 0.9 : 0.6,
               }}
               onEachFeature={(feature, layer) => {
                 const props = feature.properties;
