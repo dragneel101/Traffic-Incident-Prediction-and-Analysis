@@ -1,114 +1,115 @@
-# Traffic Incident Prediction and Analysis
+# 🚦 Traffic Collision Risk Predictor
 
-A comprehensive solution for predicting and analyzing traffic incidents using external APIs, machine learning, and FastAPI. This application fetches real-time or historical weather data, retrieves route/geospatial details, processes that information through a trained model, and exposes predictions and analytics through a REST API.
+A real-time web application that predicts the risk of traffic collisions based on location, live traffic, and contextual factors like weather and time.
 
----
+## 🌐 Features
 
-## Table of Contents
-
-1. [Overview](#overview)  
-2. [Features](#features)  
-3. [Architecture](#architecture)  
-4. [Installation](#installation)  
-5. [Environment Variables](#environment-variables)  
-6. [Usage](#usage)  
-7. [API Endpoints](#api-endpoints)  
-8. [Data Flow](#data-flow)  
-9. [Model Training and Updating](#model-training-and-updating)  
-10. [Project Structure](#project-structure)  
-11. [Contributing](#contributing)  
-12. [License](#license)  
+- Predict collision risk between two locations.
+- Context-aware predictions using:
+  - Live weather data (OpenWeather)
+  - Traffic routes (OpenRouteService)
+- Route-based heatmap visualization.
+- Dashboard showing prediction history and usage stats.
 
 ---
 
-## 1. Overview
+## ⚙️ Tech Stack
 
-This repository hosts a FastAPI-based service that forecasts or analyzes traffic incidents. By combining weather conditions, location-based routing data, and historical traffic patterns, the application aims to give real-time or near real-time predictions for potential accidents, congestion, or other noteworthy incidents.
-
-Example uses:
-
-- City or state authorities wanting to predict high-risk areas for traffic accidents based on weather  
-- Navigation providers looking to warn drivers of potential delays or hazards  
-- Researchers studying correlations between environmental conditions and traffic incident patterns  
+- **Backend:** FastAPI
+- **Machine Learning:** scikit-learn
+- **APIs:** OpenWeather, OpenRouteService
+- **Data Sources:** Meteostat, Historical Collision Data
+- **Frontend:** (Not included here, assumed separately hosted or integrated)
 
 ---
 
-## 2. Features
+## 🚀 Getting Started
 
-- **Weather Data Integration**  
-  Retrieves real-time and/or historical weather data via [OpenWeatherMap](https://openweathermap.org/api) and [Meteostat](https://dev.meteostat.net/).  
-  - Temperature, precipitation, wind speed, etc., are used as inputs to the traffic incident model
+### 1. Clone the Repository
 
-- **Routing and Geospatial Data**  
-  Uses [OpenRouteService](https://openrouteservice.org/) (ORS) to obtain route details, distances, or geocoding data, which may inform location-based incident forecasting
+```bash
+git clone https://github.com/your-username/traffic-collision-risk-predictor.git
+cd traffic-collision-risk-predictor
+```
 
-- **Predictive Modeling**  
-  A scikit-learn model (stored in `./data/model.pkl` by default) generates a probability or classification of potential traffic incidents. You can update or retrain this model as new data becomes available
+### 2. Create a Virtual Environment (Recommended)
 
-- **FastAPI Microservice**  
-  A modern REST API with documented endpoints (via OpenAPI/Swagger UI) that accepts requests (e.g., weather or route queries) and returns predictions or other analytics
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-- **Extensible**  
-  You can seamlessly integrate additional data sources or swap out the machine learning model for more advanced solutions (XGBoost, PyTorch, etc.) as your needs evolve
+### 3. Install Dependencies
 
----
+```bash
+pip install -r requirements.txt
+```
 
-## 3. Architecture
+### 4. Setup Environment Variables
 
-A high-level illustration of the system’s components:
+Create a `.env` file in the project root (if not already there) and add your API keys and model path:
 
-          +----------------------+
-          |  External User/App  |
-          +---------+-----------+
-                    |
-                    |  HTTP Request
-                    |
-           +--------v--------+
-           |    FastAPI      |
-           |  (main Service) |
-           +--------+--------+
-                    |
-                    |  calls
-                    |
-     +--------------v---------------+
-     |    Weather Providers (API)   |
-     |  (OpenWeather, Meteostat)    |
-     +--------------+---------------+
-                    |
-                    |  calls
-                    |
-   +----------------v----------------+
-   |   OpenRouteService (API)       |
-   |  (routing & geospatial data)   |
-   +----------------+---------------+
-                    |
-                    |
-                    v
-        +----------------------+
-        |  Machine Learning    |
-        |   Model (scikit)    |
-        +----------------------+
+```env
+OPENWEATHER_API_KEY=your_openweather_api_key
+ORS_API_KEY=your_openrouteservice_api_key
+MODEL_PATH=./data/model.pkl
+```
 
+> Replace with your actual keys. You can get free keys from:
+> - [OpenWeather API](https://openweathermap.org/api)
+> - [OpenRouteService](https://openrouteservice.org/dev/#/signup)
 
+### 5. Run the App
 
-1. **FastAPI** handles incoming requests (for predictions or analytics).  
-2. **External APIs** (OpenWeatherMap, Meteostat, ORS) supply data.  
-3. **ML Model** uses combined data (weather, routes, historical incidents) to produce predictions, which are then returned as JSON responses.
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Visit `http://localhost:8000/docs` to test the API via Swagger UI.
 
 ---
 
-## 4. Installation
+## 📁 Project Structure
 
-### Prerequisites
+```
+.
+├── main.py                 # FastAPI entry point
+├── .env                   # Environment variables
+├── requirements.txt       # Python dependencies
+├── data/
+│   └── model.pkl          # Trained ML model
+└── utils/                 # Helper scripts (API, preprocessing, etc.)
+```
 
-- Python 3.7+  
-- (Optional) A virtual environment tool such as `venv` or `conda`
+---
 
-### Steps
+## 📊 Dashboard
 
-1. **Clone the Repository**  
-   ```bash
-   git clone https://github.com/dragneel101/Traffic-Incident-Prediction-and-Analysis.git
-   cd Traffic-Incident-Prediction-and-Analysis
+Prediction statistics, usage metrics, and past queries are visualized in the dashboard (frontend implementation assumed separately).
 
-2. **Install Dependencies**
+---
+
+## ✨ Future Features
+
+- User login and trip history
+- Model monitoring and auto-retraining
+- Integration with map-based route risk overlays
+- Admin analytics panel
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome! For major changes, please open an issue first to discuss what you'd like to change.
+
+---
+
+## 📄 License
+
+[MIT](LICENSE)
+
+---
+
+## 💬 Contact
+
+For issues, reach out to [your-email@example.com] or create an issue on GitHub.
