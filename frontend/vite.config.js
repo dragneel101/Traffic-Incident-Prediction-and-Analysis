@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: "10.0.0.252",
-    port: 5173,
+    port: 4173,
     open: true,
     allowedHosts: ["traffic.khaitu.ca", "trafficapi.khaitu.ca"],
     proxy: {

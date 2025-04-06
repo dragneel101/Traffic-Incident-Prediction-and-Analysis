@@ -1,24 +1,32 @@
-
+// src/api/client.js
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL:"https://trafficapi.khaitu.ca",
-  
+  baseURL: "https://trafficapi.khaitu.ca",
 });
-//console.log('Axios client baseURL:', client.defaults.baseURL);
-// Fetch total predictions count
+
+// Automatically include the token from localStorage in each request
+client.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token'); // or sessionStorage, depending on your app
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Existing methods
 export const getTotalPredictions = () =>
   client.get("/api/stats/total").then(res => res.data);
 
-// Fetch the number of predictions over time (for chart)
 export const getTimeseries = () =>
   client.get("/api/stats/timeseries").then(res => res.data);
 
-// Fetch top 5 most common start/end locations
 export const getFrequentLocations = () =>
   client.get("/api/stats/frequent").then(res => res.data);
 
-// Fetch the 5 most recent prediction events
 export const getRecentActivity = () =>
   client.get("/api/stats/recent").then(res => res.data);
 

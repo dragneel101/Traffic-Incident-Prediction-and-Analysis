@@ -37,7 +37,7 @@ const Login = () => {
       const data = await apiClient(`${API_URL}/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.toLowerCase(), password }),
       });
   
       localStorage.setItem("token", data.access_token);
