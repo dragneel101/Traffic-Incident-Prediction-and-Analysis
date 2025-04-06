@@ -19,7 +19,7 @@ A real-time web application that predicts the risk of traffic collisions based o
 - **Machine Learning:** scikit-learn
 - **APIs:** OpenWeather, OpenRouteService
 - **Data Sources:** Meteostat, Historical Collision Data
-- **Frontend:** (Not included here, assumed separately hosted or integrated)
+- **Frontend:** REACT, TAILWIND CSS
 
 ---
 
