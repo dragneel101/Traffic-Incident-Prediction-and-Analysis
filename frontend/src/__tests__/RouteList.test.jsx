@@ -39,9 +39,9 @@ const ROUTES = [
 describe("RouteList", () => {
   it("renders all route cards", () => {
     render(<RouteList routes={ROUTES} selectedRouteId={null} onSelect={vi.fn()} />);
-    expect(screen.getByText("Route 1")).toBeInTheDocument();
-    expect(screen.getByText("Route 2")).toBeInTheDocument();
-    expect(screen.getByText("Route 3")).toBeInTheDocument();
+    expect(screen.getByText("Safest Route")).toBeInTheDocument();
+    expect(screen.getByText("Alternative 2")).toBeInTheDocument();
+    expect(screen.getByText("Alternative 3")).toBeInTheDocument();
   });
 
   it("shows recommended badge on the recommended route", () => {
@@ -51,9 +51,9 @@ describe("RouteList", () => {
 
   it("displays correct risk levels", () => {
     render(<RouteList routes={ROUTES} selectedRouteId={null} onSelect={vi.fn()} />);
-    expect(screen.getByText("Low")).toBeInTheDocument();
-    expect(screen.getByText("Medium")).toBeInTheDocument();
-    expect(screen.getByText("High")).toBeInTheDocument();
+    expect(screen.getByText("Low risk")).toBeInTheDocument();
+    expect(screen.getByText("Moderate")).toBeInTheDocument();
+    expect(screen.getByText("High risk")).toBeInTheDocument();
   });
 
   it("shows distance and duration for each route", () => {
@@ -71,11 +71,11 @@ describe("RouteList", () => {
     expect(onSelect).toHaveBeenCalledWith(1);
   });
 
-  it("highlights the selected route with indigo border", () => {
+  it("highlights the selected route with blue border", () => {
     const { container } = render(
       <RouteList routes={ROUTES} selectedRouteId={0} onSelect={vi.fn()} />
     );
-    const selectedCard = container.querySelector(".border-indigo-500");
+    const selectedCard = container.querySelector(".border-blue-500");
     expect(selectedCard).toBeTruthy();
   });
 

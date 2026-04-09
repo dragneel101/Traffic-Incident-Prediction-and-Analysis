@@ -17,7 +17,7 @@ vi.mock("../components/AddressSearch", () => ({
     return (
       <div>
         <span>{label}</span>
-        <button onClick={() => onSelect("Toronto, ON", { latitude: 43.65, longitude: -79.38 })}>
+        <button onClick={() => onSelect({ latitude: 43.65, longitude: -79.38 })}>
           Select {id}
         </button>
       </div>
@@ -118,8 +118,8 @@ describe("RoutePlanner", () => {
 
     // Route cards should appear
     await waitFor(() => {
-      expect(screen.getByText("Route 1")).toBeInTheDocument();
-      expect(screen.getByText("Route 2")).toBeInTheDocument();
+      expect(screen.getByText("Safest Route")).toBeInTheDocument();
+      expect(screen.getByText("Alternative 2")).toBeInTheDocument();
     });
   });
 
@@ -132,7 +132,7 @@ describe("RoutePlanner", () => {
     await userEvent.click(screen.getByText("Select End"));
     await userEvent.click(screen.getByRole("button", { name: /predict/i }));
 
-    expect(screen.getByText(/predicting|loading/i)).toBeInTheDocument();
+    expect(screen.getByText(/calculating/i)).toBeInTheDocument();
   });
 
   it("shows error toast on prediction failure", async () => {
@@ -145,7 +145,7 @@ describe("RoutePlanner", () => {
 
     await waitFor(() => {
       // Route list should not appear
-      expect(screen.queryByText("Route 1")).not.toBeInTheDocument();
+      expect(screen.queryByText("Safest Route")).not.toBeInTheDocument();
     });
   });
 });
