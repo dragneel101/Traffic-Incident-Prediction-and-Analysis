@@ -12,14 +12,17 @@ vi.mock("../components/MapView", () => ({
 }));
 
 vi.mock("../components/AddressSearch", () => ({
-  default: ({ label, onSelect }) => (
-    <div>
-      <span>{label}</span>
-      <button onClick={() => onSelect("Toronto, ON", { latitude: 43.65, longitude: -79.38 })}>
-        Select {label}
-      </button>
-    </div>
-  ),
+  default: ({ label, onSelect }) => {
+    const id = label.split(" ")[0]; // "Start" or "End"
+    return (
+      <div>
+        <span>{label}</span>
+        <button onClick={() => onSelect("Toronto, ON", { latitude: 43.65, longitude: -79.38 })}>
+          Select {id}
+        </button>
+      </div>
+    );
+  },
 }));
 
 // Mock predict API
@@ -87,8 +90,8 @@ describe("RoutePlanner", () => {
 
   it("renders start and end address inputs", () => {
     renderPlanner();
-    expect(screen.getByText("Start")).toBeInTheDocument();
-    expect(screen.getByText("End")).toBeInTheDocument();
+    expect(screen.getByText("Start Address")).toBeInTheDocument();
+    expect(screen.getByText("End Address")).toBeInTheDocument();
   });
 
   it("renders the map", () => {
