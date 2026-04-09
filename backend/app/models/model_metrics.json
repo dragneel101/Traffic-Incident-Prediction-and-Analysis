@@ -1,0 +1,29 @@
+{
+  "version": "v4",
+  "features": [
+    "hour_sin",
+    "hour_cos",
+    "is_rush_hour",
+    "latitude",
+    "longitude",
+    "temp_c",
+    "precip_mm",
+    "AUTOMOBILE",
+    "MOTORCYCLE",
+    "PASSENGER",
+    "BICYCLE",
+    "PEDESTRIAN"
+  ],
+  "train_samples": 174724,
+  "test_samples": 43682,
+  "cv_folds": 5,
+  "cv_accuracy": 0.7651,
+  "cv_accuracy_std": 0.0023,
+  "cv_auc": 0.7582,
+  "cv_auc_std": 0.0025,
+  "cv_f1": 0.4634,
+  "cv_f1_std": 0.0027,
+  "test_accuracy": 0.763,
+  "test_auc": 0.76,
+  "test_f1": 0.461
+}

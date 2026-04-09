@@ -1,7 +1,7 @@
 import hashlib
 from datetime import timedelta, datetime, timezone
 from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Depends, Request
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -23,6 +23,13 @@ class SignUpRequest(BaseModel):
     name: str | None = None
     phone_number: str | None = None
 
+    @field_validator("password")
+    @classmethod
+    def password_max_bytes(cls, v: str) -> str:
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("Password must be 72 bytes or fewer")
+        return v
+
 
 class SignInRequest(BaseModel):
     email: EmailStr
@@ -43,7 +50,7 @@ def _hash_token(token: str) -> str:
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED)
 @limiter.limit("10/minute")
-def sign_up(request: Request, data: SignUpRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def sign_up(request: Request, data: SignUpRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already in use")
 
@@ -65,7 +72,7 @@ def sign_up(request: Request, data: SignUpRequest, background_tasks: BackgroundT
 
 @router.post("/signin")
 @limiter.limit("10/minute")
-def sign_in(request: Request, data: SignInRequest, db: Session = Depends(get_db)):
+async def sign_in(request: Request, data: SignInRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")

@@ -53,5 +53,6 @@ export const getTotalPredictions = () => client.get("/api/stats/total").then((r)
 export const getTimeseries = () => client.get("/api/stats/timeseries").then((r) => r.data);
 export const getFrequentLocations = () => client.get("/api/stats/frequent").then((r) => r.data);
 export const getRecentActivity = () => client.get("/api/stats/recent").then((r) => r.data);
+export const getModelPerformance = () => client.get("/api/stats/model-performance").then((r) => r.data);
 
 export default client;

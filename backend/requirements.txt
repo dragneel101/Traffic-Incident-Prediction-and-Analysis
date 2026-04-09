@@ -12,10 +12,11 @@ pydantic
 pydantic[email]
 sqlalchemy
 psycopg2-binary
-passlib[bcrypt]
+bcrypt
 PyJWT
 fastapi-mail
 geopy
+geojson
 alembic
 cachetools
 slowapi

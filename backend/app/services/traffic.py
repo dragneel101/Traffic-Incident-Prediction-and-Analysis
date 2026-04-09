@@ -30,11 +30,11 @@ def get_traffic_flow(lat: float, lon: float, radius_m: int = 500) -> dict:
         return default
 
     try:
-        url = "https://data.traffic.hereapi.com/traffic/6.3/flow.json"
+        url = "https://data.traffic.hereapi.com/v7/flow"
         params = {
             "in": f"circle:{lat},{lon};r={radius_m}",
             "locationReferencing": "shape",
-            "apikey": HERE_API_KEY,
+            "apiKey": HERE_API_KEY,
         }
         resp = requests.get(url, params=params, timeout=5)
         resp.raise_for_status()
@@ -88,10 +88,11 @@ def get_traffic_incidents(lat: float, lon: float, radius_km: float = 5.0) -> lis
         return []
 
     try:
-        url = "https://data.traffic.hereapi.com/traffic/6.3/incidents.json"
+        url = "https://data.traffic.hereapi.com/v7/incidents"
         params = {
             "in": f"circle:{lat},{lon};r={int(radius_km * 1000)}",
-            "apikey": HERE_API_KEY,
+            "locationReferencing": "shape",
+            "apiKey": HERE_API_KEY,
         }
         resp = requests.get(url, params=params, timeout=5)
         resp.raise_for_status()
@@ -100,25 +101,36 @@ def get_traffic_incidents(lat: float, lon: float, radius_km: float = 5.0) -> lis
         incidents = []
         for item in data.get("results", []):
             details = item.get("incidentDetails", {})
-            loc = item.get("location", {})
 
-            # Extract representative coordinate from the location shape
-            inc_lat, inc_lon = lat, lon
-            shape = loc.get("shape", {}).get("links", [])
-            if shape and shape[0].get("points"):
-                pt = shape[0]["points"][0]
-                inc_lat = pt.get("lat", lat)
-                inc_lon = pt.get("lng", lon)
+            severity_map = {"critical": 4, "major": 3, "minor": 2, "lowest": 1}
+            criticality = details.get("criticality", "minor")
 
-            severity_map = {"CRITICAL": 4, "MAJOR": 3, "MINOR": 2, "LOWEST": 1}
-            criticality = details.get("criticalityLabel", "MINOR")
+            summary_obj = details.get("summary", {})
+            description = summary_obj.get("value", "Traffic incident") if isinstance(summary_obj, dict) else str(summary_obj)
+
+            # Extract actual incident coordinates from HERE API response
+            inc_lat, inc_lon = lat, lon  # fallback to query centre
+            location = item.get("location", {})
+            # Try geoloc origin first (point location)
+            origin = location.get("geoloc", {}).get("origin", {})
+            if origin.get("lat") is not None and origin.get("lng") is not None:
+                inc_lat = origin["lat"]
+                inc_lon = origin["lng"]
+            else:
+                # Try shape links (line/area location — use first point)
+                links = location.get("shape", {}).get("links", [])
+                if links:
+                    points = links[0].get("points", [])
+                    if points:
+                        inc_lat = points[0].get("lat", lat)
+                        inc_lon = points[0].get("lng", lon)
 
             incidents.append({
                 "type": details.get("type", "UNKNOWN"),
                 "severity": severity_map.get(criticality, 1),
                 "lat": inc_lat,
                 "lon": inc_lon,
-                "description": details.get("summary", "Traffic incident"),
+                "description": description,
                 "start_time": details.get("startTime"),
                 "end_time": details.get("endTime"),
             })

@@ -42,15 +42,17 @@ def get_route_coordinates(start: dict, end: dict) -> list[dict]:
     return [{"latitude": lat, "longitude": lng} for lng, lat in decoded]
 
 
-def get_multiple_routes(start: dict, end: dict, count: int = 3) -> dict:
+def get_multiple_routes(start: dict, end: dict, count: int = 5) -> dict:
     """
-    Generate up to 3 meaningful route alternatives using different ORS route preferences:
-      Route 0 — recommended (fastest, default)
-      Route 1 — shortest distance
-      Route 2 — recommended but avoiding tollways
+    Generate up to `count` diverse driving route alternatives.
 
-    Each GeoJSON feature includes:
-      route_id, distance_km, duration_min
+    Strategy:
+      1. ORS native alternative_routes  — up to 3 geometrically diverse options
+      2. Avoid highways                 — surface-street route
+      3. Avoid highways + tollways      — local roads, no tolls
+      4. Shortest preference            — pure distance minimum
+
+    Routes are deduplicated by rounded distance so near-identical paths are dropped.
     Risk scores and is_recommended are added by the caller (route_risk.py).
     """
     coords = [
@@ -58,46 +60,71 @@ def get_multiple_routes(start: dict, end: dict, count: int = 3) -> dict:
         [end["longitude"], end["latitude"]],
     ]
 
-    route_configs = [
-        {"preference": "recommended", "options": {}},
-        {"preference": "shortest",    "options": {}},
-        {"preference": "recommended", "options": {"avoid_features": ["tollways"]}},
+    seen_dist_keys: set = set()
+    collected: list = []
+
+    def _add_from_response(response):
+        for feat in response.get("features", []):
+            summary  = feat.get("properties", {}).get("summary", {})
+            dist_m   = summary.get("distance", 0)
+            dur_s    = summary.get("duration", 0)
+            dist_km  = round(dist_m / 1000, 2)
+            # Deduplicate: bucket to nearest 0.3 km to drop near-identical routes
+            key = round(dist_km / 0.3) * 0.3
+            if key in seen_dist_keys:
+                continue
+            seen_dist_keys.add(key)
+            collected.append(Feature(
+                geometry=LineString(feat["geometry"]["coordinates"]),
+                properties={
+                    "distance_km": dist_km,
+                    "duration_min": round(dur_s / 60, 1),
+                },
+            ))
+
+    api_calls = [
+        # 1. ORS native alternatives — geometrically diverse by design
+        dict(
+            coordinates=coords,
+            profile="driving-car",
+            format="geojson",
+            alternative_routes={"target_count": 3, "weight_factor": 1.6, "share_factor": 0.5},
+        ),
+        # 2. Avoid highways — surface streets
+        dict(
+            coordinates=coords,
+            profile="driving-car",
+            format="geojson",
+            options={"avoid_features": ["highways"]},
+        ),
+        # 3. Avoid highways + tollways — local roads, no tolls
+        dict(
+            coordinates=coords,
+            profile="driving-car",
+            format="geojson",
+            options={"avoid_features": ["highways", "tollways"]},
+        ),
+        # 4. Shortest pure distance
+        dict(
+            coordinates=coords,
+            profile="driving-car",
+            format="geojson",
+            preference="shortest",
+        ),
     ]
 
-    features = []
-
-    for i, cfg in enumerate(route_configs[:count]):
+    for kwargs in api_calls:
+        if len(collected) >= count:
+            break
         try:
-            kwargs = {
-                "coordinates": coords,
-                "profile": "driving-car",
-                "format": "geojson",
-                "preference": cfg["preference"],
-            }
-            if cfg["options"].get("avoid_features"):
-                kwargs["options"] = {"avoid_features": cfg["options"]["avoid_features"]}
-
-            response = client.directions(**kwargs)
-            feature = response["features"][0]
-            coords_raw = feature["geometry"]["coordinates"]
-            summary = feature["properties"].get("summary", {})
-
-            distance_m = summary.get("distance", 0)
-            duration_s = summary.get("duration", 0)
-
-            geo_feature = Feature(
-                geometry=LineString(coords_raw),
-                properties={
-                    "route_id": i,
-                    "distance_km": round(distance_m / 1000, 2),
-                    "duration_min": round(duration_s / 60, 1),
-                },
-            )
-            features.append(geo_feature)
-
+            resp = client.directions(**kwargs)
+            _add_from_response(resp)
         except Exception as e:
-            logger.warning("ors_route_failed", extra={"route_id": i, "error": str(e)})
-            continue
+            logger.warning("ors_route_call_failed", extra={"error": str(e)})
 
-    logger.info("routes_generated", extra={"count": len(features)})
-    return FeatureCollection(features)
+    # Assign sequential route_ids after deduplication
+    for i, feat in enumerate(collected[:count]):
+        feat["properties"]["route_id"] = i
+
+    logger.info("routes_generated", extra={"count": len(collected[:count])})
+    return FeatureCollection(collected[:count])

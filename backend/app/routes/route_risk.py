@@ -60,8 +60,8 @@ def _weighted_score(ml_risk_pct: float, congestion: float, incident_count: int) 
 @router.post("/predict/route_risk", response_model=RouteRiskResponse)
 @limiter.limit("30/minute")
 def predict_route_risk(
-    request_obj: Request,
-    request: RouteRequest,
+    request: Request,
+    body: RouteRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -69,8 +69,8 @@ def predict_route_risk(
     logger.info("route_risk_request", extra={"user_id": current_user.id})
 
     route = get_route_coordinates(
-        start={"latitude": request.start.latitude, "longitude": request.start.longitude},
-        end={"latitude": request.end.latitude, "longitude": request.end.longitude},
+        start={"latitude": body.start.latitude, "longitude": body.start.longitude},
+        end={"latitude": body.end.latitude, "longitude": body.end.longitude},
     )
 
     segments = []
@@ -110,15 +110,15 @@ def predict_route_risk(
         ))
 
     overall = round(sum(s.risk_score for s in segments) / len(segments), 4) if segments else 0.0
-    start_address = reverse_geocode(request.start.latitude, request.start.longitude)
-    end_address = reverse_geocode(request.end.latitude, request.end.longitude)
+    start_address = reverse_geocode(body.start.latitude, body.start.longitude)
+    end_address = reverse_geocode(body.end.latitude, body.end.longitude)
 
     congestion = get_avg_congestion_along_route(route)
 
     db.add(PredictionLog(
         user_id=current_user.id,
-        start_location=f"{request.start.latitude},{request.start.longitude}",
-        end_location=f"{request.end.latitude},{request.end.longitude}",
+        start_location=f"{body.start.latitude},{body.start.longitude}",
+        end_location=f"{body.end.latitude},{body.end.longitude}",
         timestamp=now,
         start_address=start_address,
         end_address=end_address,
@@ -134,9 +134,9 @@ def predict_route_risk(
 @router.post("/predict/multiple_route_risks")
 @limiter.limit("30/minute")
 def predict_multiple_route_risks(
-    request_obj: Request,
-    request: RouteRequest,
-    route_count: int = 3,
+    request: Request,
+    body: RouteRequest,
+    route_count: int = 5,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -148,8 +148,8 @@ def predict_multiple_route_risks(
     logger.info("multiple_routes_request", extra={"user_id": current_user.id})
 
     geojson = get_multiple_routes(
-        start={"latitude": request.start.latitude, "longitude": request.start.longitude},
-        end={"latitude": request.end.latitude, "longitude": request.end.longitude},
+        start={"latitude": body.start.latitude, "longitude": body.start.longitude},
+        end={"latitude": body.end.latitude, "longitude": body.end.longitude},
         count=route_count,
     )
 
@@ -178,15 +178,15 @@ def predict_multiple_route_risks(
     if best_feature is not None:
         best_feature["properties"]["is_recommended"] = True
 
-    start_address = reverse_geocode(request.start.latitude, request.start.longitude)
-    end_address = reverse_geocode(request.end.latitude, request.end.longitude)
+    start_address = reverse_geocode(body.start.latitude, body.start.longitude)
+    end_address = reverse_geocode(body.end.latitude, body.end.longitude)
 
     best_props = best_feature["properties"] if best_feature else {}
 
     db.add(PredictionLog(
         user_id=current_user.id,
-        start_location=f"{request.start.latitude},{request.start.longitude}",
-        end_location=f"{request.end.latitude},{request.end.longitude}",
+        start_location=f"{body.start.latitude},{body.start.longitude}",
+        end_location=f"{body.end.latitude},{body.end.longitude}",
         timestamp=datetime.now(),
         start_address=start_address,
         end_address=end_address,

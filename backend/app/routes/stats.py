@@ -1,10 +1,13 @@
 # app/routes/stats.py
-from fastapi import APIRouter, Depends
+import json
+import os
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.services import stats
 from app.database import get_db
-from app.auth.dependencies import get_current_user  # import your auth dependency
-from app.models.user import User  # assuming your user model is named User
+from app.auth.dependencies import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/api/stats", tags=["Stats"])
 
@@ -35,3 +38,13 @@ def recent_predictions(
     current_user: User = Depends(get_current_user)
 ):
     return stats.get_recent_predictions(db, current_user.id)
+
+
+_METRICS_PATH = os.path.join("app", "models", "model_metrics.json")
+
+@router.get("/model-performance")
+def model_performance():
+    if not os.path.exists(_METRICS_PATH):
+        raise HTTPException(status_code=404, detail="Model metrics not available")
+    with open(_METRICS_PATH) as f:
+        return json.load(f)

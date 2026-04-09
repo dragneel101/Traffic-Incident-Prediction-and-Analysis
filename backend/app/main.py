@@ -9,7 +9,7 @@ load_dotenv()
 
 from app.logging_config import setup_logging
 from app.limiter import limiter
-from app.routes import ping, predict, route_risk, auth, user, password_reset, stats, traffic
+from app.routes import ping, route_risk, auth, user, password_reset, stats, traffic
 
 setup_logging()
 
@@ -19,14 +19,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://traffic.khaitu.ca", "https://trafficapi.khaitu.ca", "http://localhost:5173"],
+    allow_origins=["https://traffic.khaitu.ca", "https://trafficapi.khaitu.ca", "http://localhost:5173", "http://localhost:4173", "http://10.0.0.188:4173", "http://10.0.0.188:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(ping.router)
-app.include_router(predict.router, prefix="/api")
 app.include_router(route_risk.router, prefix="/api")
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(user.router, prefix="/user", tags=["User"])

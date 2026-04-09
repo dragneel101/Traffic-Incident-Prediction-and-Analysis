@@ -3,7 +3,6 @@ import { toast } from "react-toastify";
 import MapView from "./MapView";
 import AddressSearch from "./AddressSearch";
 import SpinnerPortal from "./SpinnerPortal";
-import RiskLegend from "./RiskLegend";
 import RouteList from "./RouteList";
 import { getMultipleRouteRisks, getTrafficIncidents } from "../api/predict";
 import { getErrorMessage } from "../utils/errorMessages";
@@ -132,11 +131,6 @@ const RoutePlanner = () => {
             onSelect={setSelectedRouteId}
           />
 
-          {routes.length > 0 && (
-            <div className="mt-2">
-              <RiskLegend />
-            </div>
-          )}
         </div>
       </div>
 
