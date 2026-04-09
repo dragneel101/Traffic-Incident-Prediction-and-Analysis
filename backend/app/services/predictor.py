@@ -8,19 +8,29 @@ from app.services.features import extract_features_for_point
 MODEL_PATH = os.path.join("app", "models", "collision_risk_model.pkl")
 model = joblib.load(MODEL_PATH)
 
-# Define input feature order
+# Must match train_model.py FEATURE_ORDER exactly.
+# congestion_level / jam_factor are intentionally excluded — all historical
+# training rows have congestion = 0, so the model cannot learn from it.
+# Live congestion is applied as a post-model multiplier below instead.
 FEATURE_ORDER = [
-    "hour", "latitude", "longitude", "temp_c", "precip_mm",
-    "AUTOMOBILE", "MOTORCYCLE", "PASSENGER", "BICYCLE", "PEDESTRIAN"
+    "hour_sin", "hour_cos", "is_rush_hour",
+    "latitude", "longitude", "temp_c", "precip_mm",
+    "AUTOMOBILE", "MOTORCYCLE", "PASSENGER", "BICYCLE", "PEDESTRIAN",
 ]
 
-def predict_collision_risk(input_data: dict) -> float:
-    """Takes a dictionary of input features and returns collision probability"""
+
+def predict_collision_risk(input_data: dict, jam_factor: float = 0.0) -> float:
+    """
+    Returns collision risk as a percentage (0–100).
+
+    jam_factor (0–10 from HERE API) boosts the base ML probability to
+    reflect live congestion — up to +40% at maximum congestion.
+    """
     features = pd.DataFrame([input_data], columns=FEATURE_ORDER)
-    prob = model.predict_proba(features)[0][1]  # Probability of class 1 (collision)
-    return round(float(prob)*100, 2)    # Convert to percentage and round
-
-
+    prob = model.predict_proba(features)[0][1]
+    # Congestion multiplier: jam_factor 0 → ×1.0, jam_factor 10 → ×1.4
+    congestion_boost = 1.0 + min(jam_factor / 10.0, 1.0) * 0.40
+    return round(min(float(prob) * congestion_boost * 100, 100.0), 2)
 
 
 def evaluate_route_risk(coords: list, sample_step: int = 10) -> float:
@@ -34,10 +44,11 @@ def evaluate_route_risk(coords: list, sample_step: int = 10) -> float:
     for i in range(0, len(coords), sample_step):
         point = coords[i]
         features = extract_features_for_point(point["latitude"], point["longitude"])
-        
-        # Ensure keys match FEATURE_ORDER
+
+        # Separate live traffic from model inputs
+        jam_factor = features.get("jam_factor", 0.0)
         input_data = {key: features.get(key, 0) for key in FEATURE_ORDER}
-        prob = predict_collision_risk(input_data)
+        prob = predict_collision_risk(input_data, jam_factor=jam_factor)
         risks.append(prob)
 
     if not risks:

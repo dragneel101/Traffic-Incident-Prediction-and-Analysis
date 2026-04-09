@@ -1,22 +1,19 @@
-import React from "react";
-
 const legendItems = [
-  { color: "bg-green-500", label: "Low" },
-  { color: "bg-blue-500", label: "Moderate" },
-  { color: "bg-yellow-400", label: "Elevated" },
-  { color: "bg-orange-500", label: "High" },
-  { color: "bg-red-600", label: "Severe" },
+  { color: "bg-green-500",  label: "Low",    hint: "< 30%" },
+  { color: "bg-orange-500", label: "Medium", hint: "30–60%" },
+  { color: "bg-red-500",    label: "High",   hint: "> 60%" },
 ];
 
-const RiskLegend = () => (
-  <div className="flex gap-4 mb-2 items-center text-sm">
-    {legendItems.map((item, index) => (
-      <span key={index} className="flex items-center gap-1">
-        <span className={`w-4 h-4 rounded inline-block ${item.color}`}></span>
-        {item.label}
-      </span>
-    ))}
-  </div>
-);
-
-export default RiskLegend;
+export default function RiskLegend() {
+  return (
+    <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+      {legendItems.map((item) => (
+        <span key={item.label} className="flex items-center gap-1.5">
+          <span className={`w-3 h-3 rounded-full inline-block ${item.color}`} />
+          <span>{item.label}</span>
+          <span className="text-gray-400">{item.hint}</span>
+        </span>
+      ))}
+    </div>
+  );
+}

@@ -1,18 +1,22 @@
-import React, { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { toast } from "react-toastify"; // ✅ This line is important
+import { useAuth } from "../context/AuthContext";
+import { toast } from "react-toastify";
+import { useEffect } from "react";
 
-const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
+export default function PrivateRoute({ children }) {
+  const { isAuthenticated, ready } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
-    if (!token) {
+    if (ready && !isAuthenticated) {
       toast.info("Please log in to access this page.");
     }
-  }, [token]);
+  }, [ready, isAuthenticated]);
 
-  return token ? children : <Navigate to="/login" state={{ from: location }} replace />;
-};
+  // Don't redirect until AuthContext has finished its restore attempt
+  if (!ready) return null;
 
-export default PrivateRoute;
+  return isAuthenticated
+    ? children
+    : <Navigate to="/login" state={{ from: location }} replace />;
+}

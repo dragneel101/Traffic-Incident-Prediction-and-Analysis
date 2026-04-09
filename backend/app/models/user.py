@@ -1,9 +1,7 @@
-# backend/app/models.py
-from sqlalchemy.ext.declarative import declarative_base
+# backend/app/models/user.py
 from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime, timezone
-
-Base = declarative_base()
+from app.database import Base
 
 class User(Base):
     __tablename__ = "users"

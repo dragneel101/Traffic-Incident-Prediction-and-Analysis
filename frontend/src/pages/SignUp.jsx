@@ -1,16 +1,14 @@
-// src/pages/SignUp.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
-import { apiClient } from '../utils/apiClient';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import api from "../api/client";
+import { getErrorMessage } from "../utils/errorMessages";
 
 const SignUp = () => {
   const navigate = useNavigate();
 
-  // Form fields and states
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [password, setPassword] = useState("");
@@ -26,15 +24,11 @@ const SignUp = () => {
   const [name, setName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState("");
-  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Show/hide password toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  /**
-   * Validates password against defined rules
-   */
   const validatePassword = (val) => {
     setPasswordChecks({
       length: val.length >= 8,
@@ -45,9 +39,6 @@ const SignUp = () => {
     });
   };
 
-  /**
-   * Calculates visual strength of the password
-   */
   const getPasswordStrength = () => {
     const score = Object.values(passwordChecks).filter(Boolean).length;
     const colors = ["bg-red-500", "bg-yellow-500", "bg-yellow-400", "bg-green-400", "bg-green-600"];
@@ -58,9 +49,6 @@ const SignUp = () => {
     };
   };
 
-  /**
-   * Final form validity check
-   */
   const isFormValid =
     Object.values(passwordChecks).every(Boolean) &&
     !emailError &&
@@ -71,37 +59,23 @@ const SignUp = () => {
     confirmPassword &&
     password === confirmPassword;
 
-  /**
-   * Submits the signup form to backend
-   */
   const handleSignUp = async (e) => {
     e.preventDefault();
-
-    if (!isFormValid) {
-      setMessage("Please fix the errors before submitting.");
-      return;
-    }
-
+    if (!isFormValid) return;
+    setLoading(true);
     try {
-      const data = await apiClient(`${API_URL}/auth/signup`, {
-        method: "POST",
-        body: JSON.stringify({
-          email: email.toLowerCase(),
-          password,
-          name,
-          phone_number: phoneNumber,
-        }),
+      await api.post("/auth/signup", {
+        email: email.toLowerCase(),
+        password,
+        name,
+        phone_number: phoneNumber,
       });
-
-      setMessage(data.message || "Sign up successful!");
-
-      // Redirect to login page after short delay
-      setTimeout(() => {
-        navigate("/login");
-      }, 3000);
+      toast.success("Account created! Redirecting to login...");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      console.error("Sign up error:", err);
-      setMessage(err.message || "An error occurred during sign up.");
+      toast.error(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,22 +83,8 @@ const SignUp = () => {
     <div className="p-8 max-w-md mx-auto">
       <h2 className="text-3xl font-bold text-indigo-700 mb-6">Sign Up</h2>
 
-      {/* Global message */}
-      {message && (
-        <div
-          className={`mb-4 text-center font-semibold ${
-            message.toLowerCase().includes("success")
-              ? "text-green-600"
-              : "text-red-600"
-          }`}
-        >
-          {message}
-        </div>
-      )}
-
-      {/* Signup Form */}
       <form onSubmit={handleSignUp} className="space-y-4">
-        {/* Email Field */}
+        {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Email</label>
           <input
@@ -142,7 +102,7 @@ const SignUp = () => {
           {emailError && <p className="text-sm text-red-500 mt-1">{emailError}</p>}
         </div>
 
-        {/* Password Field */}
+        {/* Password */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Password</label>
           <div className="relative">
@@ -162,7 +122,6 @@ const SignUp = () => {
               }}
               required
             />
-            {/* Toggle password visibility */}
             <span
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer"
@@ -171,7 +130,6 @@ const SignUp = () => {
             </span>
           </div>
 
-          {/* Password rules & strength meter */}
           <AnimatePresence>
             {password.length > 0 && (
               <motion.div
@@ -195,9 +153,7 @@ const SignUp = () => {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
-                      className={`flex items-center gap-2 ${
-                        passed ? "text-green-600" : "text-red-600"
-                      }`}
+                      className={`flex items-center gap-2 ${passed ? "text-green-600" : "text-red-600"}`}
                       transition={{ duration: 0.25, delay: 0.05 }}
                     >
                       {passed ? <FaCheckCircle /> : <FaTimesCircle />}
@@ -206,7 +162,6 @@ const SignUp = () => {
                   );
                 })}
 
-                {/* Password Strength Bar */}
                 <div className="mt-3">
                   <div className="w-full bg-gray-200 rounded h-2">
                     <div
@@ -214,9 +169,7 @@ const SignUp = () => {
                       style={{ width: getPasswordStrength().width }}
                     />
                   </div>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {getPasswordStrength().label}
-                  </p>
+                  <p className="text-xs text-gray-600 mt-1">{getPasswordStrength().label}</p>
                 </div>
               </motion.div>
             )}
@@ -238,7 +191,6 @@ const SignUp = () => {
               }}
               required
             />
-            {/* Toggle confirm password visibility */}
             <span
               onClick={() => setShowConfirmPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer"
@@ -251,7 +203,7 @@ const SignUp = () => {
           )}
         </div>
 
-        {/* Name Field */}
+        {/* Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Name</label>
           <input
@@ -262,7 +214,7 @@ const SignUp = () => {
           />
         </div>
 
-        {/* Phone Number */}
+        {/* Phone */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Phone Number</label>
           <input
@@ -279,19 +231,17 @@ const SignUp = () => {
           {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
-          disabled={!isFormValid}
+          disabled={!isFormValid || loading}
           className={`w-full ${
-            isFormValid ? "bg-indigo-600 hover:bg-indigo-700" : "bg-gray-400 cursor-not-allowed"
+            isFormValid && !loading ? "bg-indigo-600 hover:bg-indigo-700" : "bg-gray-400 cursor-not-allowed"
           } text-white px-4 py-2 rounded shadow transition`}
         >
-          Sign Up
+          {loading ? "Creating account..." : "Sign Up"}
         </button>
       </form>
 
-      {/* Link to login page */}
       <div className="text-center mt-4">
         <p>
           Already have an account?{" "}

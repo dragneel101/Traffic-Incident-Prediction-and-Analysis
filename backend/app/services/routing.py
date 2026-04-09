@@ -4,116 +4,127 @@ from dotenv import load_dotenv
 from geojson import Feature, FeatureCollection, LineString
 from openrouteservice import convert
 import openrouteservice
+from app.logging_config import get_logger
 
-# Load environment variables
 load_dotenv()
+logger = get_logger(__name__)
 
 ORS_API_KEY = os.getenv("ORS_API_KEY")
+if not ORS_API_KEY:
+    raise ValueError("ORS_API_KEY not found. Make sure it is set in your .env file.")
+
 client = openrouteservice.Client(key=ORS_API_KEY)
 
 
-def get_route_coordinates(start: dict, end: dict):
+def get_route_coordinates(start: dict, end: dict) -> list[dict]:
     """
-    Calls OpenRouteService Directions API to get a route between start and end coordinates.
-    Returns a list of decoded lat/lng coordinate points along the route.
+    Get a single route between start and end via ORS.
+    Returns a list of {"latitude": ..., "longitude": ...} dicts.
     """
-
-    if ORS_API_KEY is None:
-        raise ValueError("ORS_API_KEY not found. Make sure it is set in your .env file.")
-
     url = "https://api.openrouteservice.org/v2/directions/driving-car"
-
-    headers = {
-        "Authorization": ORS_API_KEY,
-        "Content-Type": "application/json"
-    }
-
+    headers = {"Authorization": ORS_API_KEY, "Content-Type": "application/json"}
     body = {
         "coordinates": [
             [start["longitude"], start["latitude"]],
-            [end["longitude"], end["latitude"]]
+            [end["longitude"], end["latitude"]],
         ]
     }
 
-    print("Sending request to ORS...")
-    print("Request body:", body)
-
-    response = requests.post(url, json=body, headers=headers)
-
-    print("ORS Status Code:", response.status_code)
-
+    response = requests.post(url, json=body, headers=headers, timeout=10)
     if response.status_code != 200:
-        print("ORS Raw Response:", response.text)
-        raise Exception(f"ORS Error {response.status_code}: {response.text}")
+        raise Exception(f"ORS error {response.status_code}: {response.text}")
 
     data = response.json()
-
     if "routes" not in data or "geometry" not in data["routes"][0]:
-        raise ValueError(f"❌ Unexpected ORS response format:\n{data}")
+        raise ValueError(f"Unexpected ORS response format: {data}")
 
-    # Decode polyline to lat/lng coordinates
-    encoded_geometry = data["routes"][0]["geometry"]
-    decoded_coords = convert.decode_polyline(encoded_geometry)["coordinates"]
+    decoded = convert.decode_polyline(data["routes"][0]["geometry"])["coordinates"]
+    return [{"latitude": lat, "longitude": lng} for lng, lat in decoded]
 
-    # Convert to list of dicts with lat/lng keys
-    route_coords = [{"latitude": lat, "longitude": lng} for lng, lat in decoded_coords]
 
-    print(f"✅ Received {len(route_coords)} route coordinates from ORS.")
-    return route_coords
-
-def get_multiple_routes(start: dict, end: dict, count: int = 3):
+def get_multiple_routes(start: dict, end: dict, count: int = 5) -> dict:
     """
-    Generate multiple route options manually using detours and return as GeoJSON FeatureCollection.
+    Generate up to `count` diverse driving route alternatives.
+
+    Strategy:
+      1. ORS native alternative_routes  — up to 3 geometrically diverse options
+      2. Avoid highways                 — surface-street route
+      3. Avoid highways + tollways      — local roads, no tolls
+      4. Shortest preference            — pure distance minimum
+
+    Routes are deduplicated by rounded distance so near-identical paths are dropped.
+    Risk scores and is_recommended are added by the caller (route_risk.py).
     """
-    detours = [
-        None,
-        {"latitude": start["latitude"] + 0.01, "longitude": start["longitude"] + 0.01},
-        {"latitude": start["latitude"] - 0.01, "longitude": start["longitude"] - 0.01},
+    coords = [
+        [start["longitude"], start["latitude"]],
+        [end["longitude"], end["latitude"]],
     ]
 
-    features = []
+    seen_dist_keys: set = set()
+    collected: list = []
 
-    for i in range(min(count, len(detours))):
-        via = detours[i]
-        if via:
-            coords = [
-                [start["longitude"], start["latitude"]],
-                [via["longitude"], via["latitude"]],
-                [end["longitude"], end["latitude"]],
-            ]
-        else:
-            coords = [
-                [start["longitude"], start["latitude"]],
-                [end["longitude"], end["latitude"]],
-            ]
-
-        try:
-            response = client.directions(
-                coordinates=coords,
-                profile='driving-car',
-                format='geojson'
-            )
-
-            feature = response["features"][0]
-            coords_raw = feature["geometry"]["coordinates"]
-            summary = feature["properties"].get("summary", {})
-
-            # Create GeoJSON Feature
-            line = LineString(coords_raw)
-            geo_feature = Feature(
-                geometry=line,
+    def _add_from_response(response):
+        for feat in response.get("features", []):
+            summary  = feat.get("properties", {}).get("summary", {})
+            dist_m   = summary.get("distance", 0)
+            dur_s    = summary.get("duration", 0)
+            dist_km  = round(dist_m / 1000, 2)
+            # Deduplicate: bucket to nearest 0.3 km to drop near-identical routes
+            key = round(dist_km / 0.3) * 0.3
+            if key in seen_dist_keys:
+                continue
+            seen_dist_keys.add(key)
+            collected.append(Feature(
+                geometry=LineString(feat["geometry"]["coordinates"]),
                 properties={
-                    "route_id": i,
-                    "distance": summary.get("distance", 0),
-                    "duration": summary.get("duration", 0)
-                }
-            )
+                    "distance_km": dist_km,
+                    "duration_min": round(dur_s / 60, 1),
+                },
+            ))
 
-            features.append(geo_feature)
+    api_calls = [
+        # 1. ORS native alternatives — geometrically diverse by design
+        dict(
+            coordinates=coords,
+            profile="driving-car",
+            format="geojson",
+            alternative_routes={"target_count": 3, "weight_factor": 1.6, "share_factor": 0.5},
+        ),
+        # 2. Avoid highways — surface streets
+        dict(
+            coordinates=coords,
+            profile="driving-car",
+            format="geojson",
+            options={"avoid_features": ["highways"]},
+        ),
+        # 3. Avoid highways + tollways — local roads, no tolls
+        dict(
+            coordinates=coords,
+            profile="driving-car",
+            format="geojson",
+            options={"avoid_features": ["highways", "tollways"]},
+        ),
+        # 4. Shortest pure distance
+        dict(
+            coordinates=coords,
+            profile="driving-car",
+            format="geojson",
+            preference="shortest",
+        ),
+    ]
 
+    for kwargs in api_calls:
+        if len(collected) >= count:
+            break
+        try:
+            resp = client.directions(**kwargs)
+            _add_from_response(resp)
         except Exception as e:
-            print(f"Route {i} failed: {e}")
-            continue
+            logger.warning("ors_route_call_failed", extra={"error": str(e)})
 
-    print(f"✅ Generated {len(features)} GeoJSON route features")
-    return FeatureCollection(features)
+    # Assign sequential route_ids after deduplication
+    for i, feat in enumerate(collected[:count]):
+        feat["properties"]["route_id"] = i
+
+    logger.info("routes_generated", extra={"count": len(collected[:count])})
+    return FeatureCollection(collected[:count])

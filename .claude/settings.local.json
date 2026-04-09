@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(python3:*)",
+      "Bash(curl -sL \"https://open.ottawa.ca/api/download/v1/items/de06f9a92931409087c18513969b4b2e/csv?layers=0\" -I)",
+      "Bash(curl -sL \"https://od-dev2-ottawa.opendata.arcgis.com/api/download/v1/items/de06f9a92931409087c18513969b4b2e/csv?layers=0\" -I)",
+      "Bash(venv/Scripts/pip show:*)",
+      "Bash(venv/Scripts/python -m pip show slowapi)",
+      "Bash(coderabbit --version)",
+      "Bash(coderabbit auth:*)",
+      "Bash(winget --version)",
+      "Bash(choco --version)",
+      "Bash(scoop --version)"
+    ]
+  },
+  "disabledMcpjsonServers": [
+    "code-review-graph"
+  ]
+}

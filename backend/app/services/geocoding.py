@@ -1,23 +1,32 @@
+import os
 from geopy.geocoders import OpenCage
 from geopy.exc import GeocoderTimedOut
-import os
+from app.cache import geocode_cache
+from app.logging_config import get_logger
 
-# Load your API key from environment variable
-API_KEY = os.getenv("OPENCAGE_API_KEY", "b96d614b4d74432b9e28049e56dacccc")
+logger = get_logger(__name__)
 
-def reverse_geocode(lat, lon):
-    """
-    Function to convert lat, lon to a human-readable address using OpenCage API
-    """
+API_KEY = os.getenv("OPENCAGE_API_KEY")
+if not API_KEY:
+    raise RuntimeError("OPENCAGE_API_KEY environment variable is not set")
+
+
+def reverse_geocode(lat: float, lon: float) -> str:
+    """Convert lat/lon to a human-readable address using OpenCage, with caching."""
+    cache_key = (round(lat, 3), round(lon, 3))
+    if cache_key in geocode_cache:
+        return geocode_cache[cache_key]
+
     geolocator = OpenCage(API_KEY)
     try:
-        # Use OpenCage API to reverse geocode the coordinates
-        location = geolocator.reverse((lat, lon), language='en')
-        if location:
-            return location.address  # Return the formatted address
-        return "Address not found"
+        location = geolocator.reverse((lat, lon), language="en", timeout=5)
+        address = location.address if location else "Address not found"
     except GeocoderTimedOut:
-        return "Geocoder service timed out"
+        logger.warning("geocode_timeout", extra={"lat": lat, "lon": lon})
+        address = "Address not found"
     except Exception as e:
-        print(f"Error during geocoding: {e}")
-        return "Error"
+        logger.error("geocode_error", extra={"error": str(e), "lat": lat, "lon": lon})
+        address = "Address not found"
+
+    geocode_cache[cache_key] = address
+    return address

@@ -1,56 +1,32 @@
 import React, { useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
-const API_URL = import.meta.env.VITE_API_URL;
-import { apiClient } from '../utils/apiClient';
-
+import { toast } from "react-toastify";
+import { useAuth } from "../context/AuthContext";
+import { getErrorMessage } from "../utils/errorMessages";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
-  //console.log(API_URL)
 
-  // const handleLogin = async (e) => {
-  //   e.preventDefault();
-  //   try {
-  //     const response = await apiClient(`${API_URL}/auth/signin`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ email, password }),
-  //     });
-  //     const data = await response.json();
-  //     if (response.ok) {
-  //       localStorage.setItem("token", data.access_token);
-  //       // Redirect to dashboard after login
-  //       navigate("/dashboard");
-  //     } else {
-  //       alert(data.detail || "Login failed");
-  //     }
-  //   } catch (error) {
-  //     console.error("Login error:", error);
-  //     alert("An error occurred during login.");
-  //   }
-  // };
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const data = await apiClient(`${API_URL}/auth/signin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.toLowerCase(), password }),
-      });
-  
-      localStorage.setItem("token", data.access_token);
+      await login(email.toLowerCase(), password);
       navigate("/dashboard");
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Login failed: " + error.message);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="p-8 max-w-md mx-auto">
-      <h2 className="text-3xl font-bold text-indigo-700 mb-6">🔐 Login</h2>
+      <h2 className="text-3xl font-bold text-indigo-700 mb-6">Login</h2>
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">Email</label>
@@ -74,13 +50,14 @@ const Login = () => {
         </div>
         <button
           type="submit"
-          className="bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700 transition"
+          disabled={loading}
+          className="w-full bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700 transition disabled:opacity-60"
         >
-          Login
+          {loading ? "Signing in..." : "Login"}
         </button>
       </form>
       <div className="text-center mt-4">
-        <NavLink to="/reset-request" className="text-indigo-500 hover:underline">
+        <NavLink to="/reset-request" className="text-indigo-500 hover:underline text-sm">
           Forgot Password?
         </NavLink>
       </div>

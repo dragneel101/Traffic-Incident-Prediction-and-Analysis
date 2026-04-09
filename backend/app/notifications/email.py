@@ -1,7 +1,10 @@
 # backend/app/notifications/email.py
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from dotenv import load_dotenv
+from app.logging_config import get_logger
 import os
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -24,9 +27,11 @@ async def send_reset_email(email_to: str, reset_token: str):
         body=f"Click the link to reset your password: https://traffic.khaitu.ca/reset?token={reset_token}",
         subtype="html"
     )
-    fm = FastMail(conf)
-    await fm.send_message(message)
-
+    try:
+        fm = FastMail(conf)
+        await fm.send_message(message)
+    except Exception:
+        logger.exception("send_reset_email_failed", extra={"email": email_to})
 
 
 async def send_signup_email(email_to: str):
@@ -41,5 +46,8 @@ async def send_signup_email(email_to: str):
         ),
         subtype="html"
     )
-    fm = FastMail(conf)
-    await fm.send_message(message)
+    try:
+        fm = FastMail(conf)
+        await fm.send_message(message)
+    except Exception:
+        logger.exception("send_signup_email_failed", extra={"email": email_to})

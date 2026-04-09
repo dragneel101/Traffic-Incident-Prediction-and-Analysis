@@ -1,10 +1,7 @@
 # backend/app/models/analytics.py
-from sqlalchemy import Column, Integer, String, Float, Numeric, DateTime, CheckConstraint, func
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Float, Numeric, DateTime
 from datetime import datetime
 from app.database import Base
-
-Base = declarative_base()
 # SQLAlchemy model to store individual prediction requests
 class PredictionLog(Base):
     __tablename__ = "prediction_logs"
@@ -26,4 +23,6 @@ class PredictionLog(Base):
 
     start_address = Column(String, nullable=True)  # New field for start address
     end_address = Column(String, nullable=True)    # New field for end address
-    collision_risk= Column(Numeric(5, 2), nullable=False)
+    collision_risk = Column(Numeric(5, 2), nullable=True, default=None)
+    congestion_level = Column(Float, nullable=True)
+    incident_count = Column(Integer, nullable=True)

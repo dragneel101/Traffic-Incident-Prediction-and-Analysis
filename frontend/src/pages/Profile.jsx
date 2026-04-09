@@ -1,37 +1,31 @@
-// src/pages/Profile.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-const API_URL = import.meta.env.VITE_API_URL;
-import { apiClient } from '../utils/apiClient';
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import api from "../api/client";
+import { getErrorMessage } from "../utils/errorMessages";
+import Skeleton from "../components/ui/Skeleton";
 
 const Profile = () => {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState({
-    email: '',
-    name: '',
-    phone_number: '',
-    profile_image: '', // <- New field
+    email: "",
+    name: "",
+    phone_number: "",
+    profile_image: "",
   });
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const fetchProfile = async () => {
     try {
-      const data = await apiClient(`${API_URL}/user/profile`, {
-        method: 'GET',
-      });
-
+      const { data } = await api.get("/user/profile");
       setProfile({
         email: data.email,
-        name: data.name || '',
-        phone_number: data.phone_number || '',
-        profile_image: data.profile_image || '', // default/fallback image support
+        name: data.name || "",
+        phone_number: data.phone_number || "",
+        profile_image: data.profile_image || "",
       });
     } catch (err) {
-      console.error('Error fetching profile:', err);
-      setError(err.message || 'An error occurred while fetching profile.');
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -48,60 +42,52 @@ const Profile = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
+    setSaving(true);
     try {
-      const data = await apiClient(`${API_URL}/user/profile`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: profile.name,
-          phone_number: profile.phone_number,
-        }),
+      await api.put("/user/profile", {
+        name: profile.name,
+        phone_number: profile.phone_number,
       });
-
-      setMessage(data.message || 'Profile updated successfully.');
+      toast.success("Profile updated successfully.");
       setEditMode(false);
-      fetchProfile(); // Refresh after save too
+      fetchProfile();
     } catch (err) {
-      console.error('Profile update error:', err);
-      setError(err.message || 'An error occurred while updating the profile.');
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleCancel = () => {
     setEditMode(false);
-    setMessage('');
-    setError('');
-    fetchProfile(); // ← Live re-fetch on cancel
+    fetchProfile();
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading profile...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+        <div className="max-w-md w-full bg-white shadow-md rounded-lg p-8 space-y-4">
+          <Skeleton className="h-24 w-24 rounded-full mx-auto" />
+          <Skeleton className="h-6 w-40 mx-auto" />
+          <Skeleton className="h-10 rounded" />
+          <Skeleton className="h-10 rounded" />
+          <Skeleton className="h-10 rounded" />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="max-w-md w-full bg-white shadow-md rounded-lg p-8">
         <div className="flex flex-col items-center">
-          {/* 🖼 Profile Picture */}
           <img
-            src={profile.profile_image || 'https://via.placeholder.com/100?text=User'}
+            src={profile.profile_image || "https://via.placeholder.com/100?text=User"}
             alt="Profile"
             className="w-24 h-24 rounded-full object-cover mb-4 border"
           />
           <h2 className="text-2xl font-bold text-indigo-700 mb-4">Your Profile</h2>
         </div>
-
-        {message && (
-          <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4 text-center">
-            {message}
-          </div>
-        )}
-        {error && (
-          <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4 text-center">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
@@ -119,7 +105,7 @@ const Profile = () => {
                 className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             ) : (
-              <p className="text-gray-800">{profile.name || '-'}</p>
+              <p className="text-gray-800">{profile.name || "-"}</p>
             )}
           </div>
           <div>
@@ -133,7 +119,7 @@ const Profile = () => {
                 className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             ) : (
-              <p className="text-gray-800">{profile.phone_number || '-'}</p>
+              <p className="text-gray-800">{profile.phone_number || "-"}</p>
             )}
           </div>
 
@@ -149,9 +135,10 @@ const Profile = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+                  disabled={saving}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition disabled:opacity-60"
                 >
-                  Save
+                  {saving ? "Saving..." : "Save"}
                 </button>
               </>
             ) : (
