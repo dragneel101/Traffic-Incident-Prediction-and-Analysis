@@ -1,164 +1,204 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.orm import Session
 
-# Importing services for weather, route, and predictor
 from app.services.routing import get_route_coordinates, get_multiple_routes
 from app.services.predictor import predict_collision_risk, evaluate_route_risk
 from app.services.weather import get_weather
-from app.services.geocoding import reverse_geocode  # Import the reverse_geocode function
-
-# Authentication utility for extracting current user
+from app.services.geocoding import reverse_geocode
+from app.services.traffic import (
+    get_traffic_flow,
+    get_avg_congestion_along_route,
+    count_incidents_along_route,
+)
 from app.auth.dependencies import get_current_user
-
-# Import the PredictionLog model for database logging
 from app.models.analytics import PredictionLog
-
-# Database session dependency
 from app.database import get_db
+from app.limiter import limiter
+from app.logging_config import get_logger
 
-# Define the router
+logger = get_logger(__name__)
 router = APIRouter()
 
-# ---------- Input Models ----------
+
 class Coordinate(BaseModel):
     latitude: float
     longitude: float
+
 
 class RouteRequest(BaseModel):
     start: Coordinate
     end: Coordinate
 
-# ---------- Output Models for /predict/route_risk ----------
+
 class SegmentRisk(BaseModel):
     segment_start: Coordinate
     segment_end: Coordinate
     risk_score: float
 
+
 class RouteRiskResponse(BaseModel):
     route_segments: List[SegmentRisk]
     overall_risk: float
 
-# ---------- Vehicle Weights ----------
-vehicle_weights = {
-    "AUTOMOBILE": 0.9,
-    "MOTORCYCLE": 0.1,
-    "PASSENGER": 0.9,
-    "BICYCLE": 0.3,
-    "PEDESTRIAN": 0.4
-}
 
-# ---------- POST /predict/route_risk ----------
+def _weighted_score(ml_risk_pct: float, congestion: float, incident_count: int) -> float:
+    """
+    Combine ML risk, live congestion, and incident count into a final 0-1 score.
+      - ml_risk_pct:   0-100 from Random Forest (normalised to 0-1)
+      - congestion:    0-1   from HERE jam factor
+      - incident_count: integer count of nearby incidents
+    """
+    ml = ml_risk_pct / 100.0
+    cong = min(congestion, 1.0)
+    inc = min(incident_count / 5.0, 1.0)
+    return round(ml * 0.5 + cong * 0.3 + inc * 0.2, 4)
+
+
 @router.post("/predict/route_risk", response_model=RouteRiskResponse)
-def predict_route_risk(request: RouteRequest, db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
-    """
-    Returns segment-by-segment collision risk and overall route risk for a single route.
-    Logs the prediction request into the database.
-    """
-    print("***************Getting route**************")
+@limiter.limit("30/minute")
+def predict_route_risk(
+    request_obj: Request,
+    request: RouteRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Segment-by-segment collision risk for a single route."""
+    logger.info("route_risk_request", extra={"user_id": current_user.id})
+
     route = get_route_coordinates(
         start={"latitude": request.start.latitude, "longitude": request.start.longitude},
-        end={"latitude": request.end.latitude, "longitude": request.end.longitude}
+        end={"latitude": request.end.latitude, "longitude": request.end.longitude},
     )
 
     segments = []
     now = datetime.now()
 
     for i in range(len(route) - 1):
-        segment_start = route[i]
-        segment_end = route[i + 1]
-
-        # Use midpoint for risk calculation
+        seg_start = route[i]
+        seg_end = route[i + 1]
         midpoint = {
-            "latitude": (segment_start["latitude"] + segment_end["latitude"]) / 2,
-            "longitude": (segment_start["longitude"] + segment_end["longitude"]) / 2
+            "latitude": (seg_start["latitude"] + seg_end["latitude"]) / 2,
+            "longitude": (seg_start["longitude"] + seg_end["longitude"]) / 2,
         }
 
-        # Get weather at midpoint
         weather = get_weather(midpoint["latitude"], midpoint["longitude"])
+        flow = get_traffic_flow(midpoint["latitude"], midpoint["longitude"])
 
-        # Prepare model input
         input_features = {
             "hour": now.hour,
             "latitude": midpoint["latitude"],
             "longitude": midpoint["longitude"],
             "temp_c": weather["temp_c"],
             "precip_mm": weather["precip_mm"],
-            **vehicle_weights
+            "AUTOMOBILE": 0.9,
+            "MOTORCYCLE": 0.1,
+            "PASSENGER": 0.9,
+            "BICYCLE": 0.3,
+            "PEDESTRIAN": 0.4,
         }
 
-        # Predict risk
-        risk = predict_collision_risk(input_features)
+        ml_risk = predict_collision_risk(input_features)
+        risk = _weighted_score(ml_risk, flow["congestion_level"], 0)
 
         segments.append(SegmentRisk(
-            segment_start=Coordinate(**segment_start),
-            segment_end=Coordinate(**segment_end),
-            risk_score=risk
+            segment_start=Coordinate(**seg_start),
+            segment_end=Coordinate(**seg_end),
+            risk_score=risk,
         ))
 
-    overall = round(sum([s.risk_score for s in segments]) / len(segments), 4) if segments else 0.0
-
-    # Get start and end addresses using reverse geocoding
+    overall = round(sum(s.risk_score for s in segments) / len(segments), 4) if segments else 0.0
     start_address = reverse_geocode(request.start.latitude, request.start.longitude)
     end_address = reverse_geocode(request.end.latitude, request.end.longitude)
 
-    # Log the prediction to the database
-    log = PredictionLog(
-        user_id=user_id,
+    congestion = get_avg_congestion_along_route(route)
+
+    db.add(PredictionLog(
+        user_id=current_user.id,
         start_location=f"{request.start.latitude},{request.start.longitude}",
         end_location=f"{request.end.latitude},{request.end.longitude}",
         timestamp=now,
-        start_address=start_address,  # Save start address
-        end_address=end_address       # Save end address
-    )
-    db.add(log)
+        start_address=start_address,
+        end_address=end_address,
+        collision_risk=overall,
+        congestion_level=congestion,
+    ))
     db.commit()
+    logger.info("route_risk_complete", extra={"user_id": current_user.id, "risk": overall})
 
     return RouteRiskResponse(route_segments=segments, overall_risk=overall)
 
-# ---------- POST /predict/multiple_route_risks ----------
+
 @router.post("/predict/multiple_route_risks")
+@limiter.limit("30/minute")
 def predict_multiple_route_risks(
-    request: RouteRequest, 
-    route_count: int = 3, 
-    db: Session = Depends(get_db),  # Inject the database session here
-    user_id: int = Depends(get_current_user)  # Inject the user_id from the authentication system
+    request_obj: Request,
+    request: RouteRequest,
+    route_count: int = 3,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
-    Returns multiple route alternatives as GeoJSON, each with a risk score.
-    Logs the prediction request to the database.
+    Multiple route alternatives as GeoJSON with weighted risk scores.
+    Risk = 50% ML model + 30% live congestion + 20% incident count.
+    The lowest-scoring route is flagged with is_recommended: true.
     """
-    # Get multiple routes using the request start and end coordinates
+    logger.info("multiple_routes_request", extra={"user_id": current_user.id})
+
     geojson = get_multiple_routes(
         start={"latitude": request.start.latitude, "longitude": request.start.longitude},
         end={"latitude": request.end.latitude, "longitude": request.end.longitude},
-        count=route_count
+        count=route_count,
     )
 
-    # Add risk_score to each GeoJSON route feature
+    best_score = None
+    best_feature = None
+
     for feature in geojson["features"]:
         coords = feature["geometry"]["coordinates"]
         decoded = [{"latitude": lat, "longitude": lon} for lon, lat in coords]
-        risk_score = evaluate_route_risk(decoded)
-        feature["properties"]["risk_score"] = risk_score
 
-    # Get start and end addresses using reverse geocoding
+        ml_risk = evaluate_route_risk(decoded)
+        congestion = get_avg_congestion_along_route(decoded)
+        incidents = count_incidents_along_route(decoded)
+
+        final_score = _weighted_score(ml_risk, congestion, incidents)
+
+        feature["properties"]["risk_score"] = final_score
+        feature["properties"]["congestion_level"] = congestion
+        feature["properties"]["incident_count"] = incidents
+        feature["properties"]["is_recommended"] = False
+
+        if best_score is None or final_score < best_score:
+            best_score = final_score
+            best_feature = feature
+
+    if best_feature is not None:
+        best_feature["properties"]["is_recommended"] = True
+
     start_address = reverse_geocode(request.start.latitude, request.start.longitude)
     end_address = reverse_geocode(request.end.latitude, request.end.longitude)
 
-    # Log the prediction to the database
-    log = PredictionLog(
-        user_id=user_id.id,  # The user who made the prediction
+    best_props = best_feature["properties"] if best_feature else {}
+
+    db.add(PredictionLog(
+        user_id=current_user.id,
         start_location=f"{request.start.latitude},{request.start.longitude}",
         end_location=f"{request.end.latitude},{request.end.longitude}",
-        timestamp=datetime.now(),  # Use the current time for logging
-        start_address=start_address,  # Save start address
-        end_address=end_address,       # Save end address
-        collision_risk=risk_score
-    )
-    db.add(log)  # Add the log entry to the session
-    db.commit()  # Commit the log entry to the database
+        timestamp=datetime.now(),
+        start_address=start_address,
+        end_address=end_address,
+        collision_risk=best_score,
+        congestion_level=best_props.get("congestion_level"),
+        incident_count=best_props.get("incident_count"),
+    ))
+    db.commit()
 
-    return geojson  # Return the GeoJSON with the risk scores
+    logger.info("multiple_routes_complete", extra={
+        "user_id": current_user.id,
+        "best_score": best_score,
+        "routes": len(geojson["features"]),
+    })
+    return geojson

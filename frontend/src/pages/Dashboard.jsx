@@ -1,97 +1,97 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-
-// UI components
-import TotalCountCard from '../components/ui/TotalCountCard';
-import FrequentLocations from '../components/ui/FrequentLocations';
-import PredictionChart from '../components/ui/PredictionChart';
-import RecentActivity from '../components/ui/RecentActivity';
-
-// Utilities and API
-import { apiClient } from '../utils/apiClient';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import TotalCountCard from "../components/ui/TotalCountCard";
+import FrequentLocations from "../components/ui/FrequentLocations";
+import PredictionChart from "../components/ui/PredictionChart";
+import RecentActivity from "../components/ui/RecentActivity";
+import Skeleton from "../components/ui/Skeleton";
+import { useAuth } from "../context/AuthContext";
 import {
   getTotalPredictions,
   getTimeseries,
   getFrequentLocations,
-  getRecentActivity
-} from '../api/client';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'; // fallback if env var is not set
+  getRecentActivity,
+} from "../api/client";
+import { getErrorMessage } from "../utils/errorMessages";
 
 const Dashboard = () => {
-  // User info
-  const [userName, setUserName] = useState('');
-
-  // Dashboard metrics
+  const { user } = useAuth();
   const [totalPredictions, setTotalPredictions] = useState(0);
   const [timeseries, setTimeseries] = useState({});
   const [frequent, setFrequent] = useState({ most_common_starts: [], most_common_ends: [] });
   const [recentActivity, setRecentActivity] = useState([]);
-
-  // UI state
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  /**
-   * Fetches analytics data on initial mount
-   */
   useEffect(() => {
-    getTotalPredictions().then(data => setTotalPredictions(data.count));
-    getFrequentLocations().then(setFrequent);
-    getTimeseries().then(setTimeseries);
-    getRecentActivity().then(setRecentActivity);
-  }, []);
-
-  /**
-   * Fetches user profile information to personalize the dashboard
-   */
-  useEffect(() => {
-    const fetchProfile = async () => {
+    const load = async () => {
       try {
-        const data = await apiClient(`${API_URL}/user/profile`, {
-          method: 'GET',
-        });
-
-        // Set user name from profile response
-        setUserName(data.name || 'User');
+        const [total, ts, freq, recent] = await Promise.all([
+          getTotalPredictions(),
+          getTimeseries(),
+          getFrequentLocations(),
+          getRecentActivity(),
+        ]);
+        setTotalPredictions(total.count);
+        setTimeseries(ts);
+        setFrequent(freq);
+        setRecentActivity(recent);
       } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError(err.message || 'Failed to fetch profile.');
+        toast.error(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
     };
-
-    fetchProfile();
+    load();
   }, []);
+
+  const userName = user?.name || "User";
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      {/* 🧑 Welcome Banner */}
+      {/* Welcome banner */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h1 className="text-3xl font-bold text-indigo-700">
-          {loading ? 'Loading...' : `Hello, ${userName}!`}
-        </h1>
-        {error && <p className="text-red-500 mt-1">{error}</p>}
+        {loading ? (
+          <Skeleton className="h-8 w-48 mb-2" />
+        ) : (
+          <h1 className="text-3xl font-bold text-indigo-700">Hello, {userName}!</h1>
+        )}
         <p className="text-gray-600 mt-2">
           Welcome to your dashboard. Here's a quick overview of your prediction activity.
         </p>
       </div>
 
-      {/* 📊 Key Metrics: Total Predictions + Frequent Locations */}
+      {/* Key metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <TotalCountCard total={totalPredictions} />
-        <FrequentLocations frequent={frequent} />
+        {loading ? (
+          <>
+            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg md:col-span-2" />
+          </>
+        ) : (
+          <>
+            <TotalCountCard total={totalPredictions} />
+            <FrequentLocations frequent={frequent} />
+          </>
+        )}
       </div>
 
-      {/* 📈 Time Series of Predictions */}
-      <PredictionChart timeseries={timeseries} />
+      {/* Time series chart */}
+      {loading ? (
+        <Skeleton className="h-48 rounded-lg mb-6" />
+      ) : (
+        <PredictionChart timeseries={timeseries} />
+      )}
 
-      {/* 🕒 Recent Prediction Activity */}
-      <RecentActivity recentActivity={recentActivity} />
+      {/* Recent activity */}
+      {loading ? (
+        <Skeleton className="h-32 rounded-lg mb-6" />
+      ) : (
+        <RecentActivity recentActivity={recentActivity} />
+      )}
 
-      {/* 🔗 Quick Navigation Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      {/* Quick links */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <Link
           to="/route-planner"
           className="bg-indigo-600 text-white p-4 rounded-lg shadow text-center hover:bg-indigo-700 transition"
@@ -103,12 +103,6 @@ const Dashboard = () => {
           className="bg-indigo-600 text-white p-4 rounded-lg shadow text-center hover:bg-indigo-700 transition"
         >
           Profile
-        </Link>
-        <Link
-          to="/reports"
-          className="bg-indigo-600 text-white p-4 rounded-lg shadow text-center hover:bg-indigo-700 transition"
-        >
-          Reports
         </Link>
       </div>
     </div>

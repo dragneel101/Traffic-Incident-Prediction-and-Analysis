@@ -5,32 +5,42 @@ import {
   Marker,
   Tooltip,
   GeoJSON,
+  CircleMarker,
+  Popup,
   useMapEvents,
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
-import RiskSegmentPopup from "./RiskSegmentPopup";
 
-// Icons
-const greenIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-});
+// ── Marker icons ──────────────────────────────────────────────────────────────
+const makeIcon = (color) =>
+  new L.Icon({
+    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  });
 
-const redIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-});
+const greenIcon = makeIcon("green");
+const redIcon   = makeIcon("red");
 
-// Reverse geocode
+// ── Risk colour helpers ────────────────────────────────────────────────────────
+// Thresholds match RouteList and RiskLegend exactly
+const getRiskColor = (score) =>
+  score < 0.3 ? "#4caf50" : score < 0.6 ? "#ff9800" : "#f44336";
+
+// ── Incident colours ──────────────────────────────────────────────────────────
+const INCIDENT_COLORS = {
+  ACCIDENT:      "#f44336",
+  CONSTRUCTION:  "#ff9800",
+  ROAD_CLOSURE:  "#9e9e9e",
+  CONGESTION:    "#ff5722",
+};
+
+// ── Reverse geocode via Nominatim ─────────────────────────────────────────────
 const reverseGeocode = async (lat, lon) => {
   try {
     const res = await axios.get("https://nominatim.openstreetmap.org/reverse", {
@@ -42,16 +52,17 @@ const reverseGeocode = async (lat, lon) => {
   }
 };
 
-// Marker click logic
+// ── Inner map components ──────────────────────────────────────────────────────
 const DualMarkerHandler = ({ start, end, setStart, setEnd, onStartSelect, onEndSelect }) => {
   useMapEvents({
     async click(e) {
       const { lat, lng } = e.latlng;
-      const address = await reverseGeocode(lat, lng);
       if (!start) {
+        const address = await reverseGeocode(lat, lng);
         setStart({ latitude: lat, longitude: lng });
         onStartSelect?.(address, { latitude: lat, longitude: lng });
       } else if (!end) {
+        const address = await reverseGeocode(lat, lng);
         setEnd({ latitude: lat, longitude: lng });
         onEndSelect?.(address, { latitude: lat, longitude: lng });
       }
@@ -60,7 +71,6 @@ const DualMarkerHandler = ({ start, end, setStart, setEnd, onStartSelect, onEndS
   return null;
 };
 
-// Bounds handlers
 const AutoFitBounds = ({ geojson }) => {
   const map = useMap();
   useEffect(() => {
@@ -69,7 +79,7 @@ const AutoFitBounds = ({ geojson }) => {
     geojson.features.forEach((f) =>
       f.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lat, lng]))
     );
-    bounds.isValid() && map.fitBounds(bounds, { padding: [50, 50] });
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
   }, [geojson, map]);
   return null;
 };
@@ -79,29 +89,30 @@ const FitToMarkers = ({ start, end }) => {
   useEffect(() => {
     const bounds = L.latLngBounds([]);
     if (start) bounds.extend([start.latitude, start.longitude]);
-    if (end) bounds.extend([end.latitude, end.longitude]);
-    bounds.isValid() && map.fitBounds(bounds, { padding: [50, 50] });
-  }, [start, end]);
+    if (end)   bounds.extend([end.latitude, end.longitude]);
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
+  }, [start, end, map]);
   return null;
 };
 
-const getRiskLevel = (score) => (score < 0.3 ? "low" : score < 0.6 ? "medium" : "high");
-const RISK_COLORS = { low: "#4caf50", medium: "#ff9800", high: "#f44336" };
-
-const MapView = ({ start, end, setStart, setEnd, geojson, onStartSelect, onEndSelect }) => {
+// ── Main component ────────────────────────────────────────────────────────────
+const MapView = ({
+  start, end, setStart, setEnd,
+  geojson,
+  selectedRouteId,
+  incidents = [],
+  onRouteClick,
+  onStartSelect, onEndSelect,
+}) => {
   const center = start || end || { latitude: 43.65, longitude: -79.38 };
   const [showTraffic, setShowTraffic] = useState(true);
 
-  const mainRouteIndex =
-    geojson?.features?.reduce((bestIdx, feature, idx, arr) =>
-      feature.properties.risk_score < arr[bestIdx].properties.risk_score ? idx : bestIdx, 0) ?? -1;
-
   return (
-    <div className="relative mt-6 rounded shadow-md border h-[600px]"> {/* Increased height */}
-      {/* Toggle Button */}
+    <div className="relative rounded shadow-md border" style={{ height: "600px" }}>
+      {/* Traffic layer toggle */}
       <div className="absolute top-3 right-3 z-[999]">
         <button
-          onClick={() => setShowTraffic((prev) => !prev)}
+          onClick={() => setShowTraffic((v) => !v)}
           className="px-3 py-1 text-sm bg-blue-600 text-white rounded shadow hover:bg-blue-700"
         >
           {showTraffic ? "Hide Traffic" : "Show Traffic"}
@@ -114,19 +125,16 @@ const MapView = ({ start, end, setStart, setEnd, geojson, onStartSelect, onEndSe
         scrollWheelZoom
         style={{ height: "100%", width: "100%" }}
       >
-        {/* Optional: comment out OSM base
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /> */}
-
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
-          attribution='©OpenStreetMap, ©CartoDB'
+          attribution="© OpenStreetMap, © CartoDB"
         />
 
         {showTraffic && (
           <TileLayer
             url="https://mt1.google.com/vt/lyrs=h,traffic&x={x}&y={y}&z={z}"
             attribution="Traffic data © Google"
-            opacity={0.8}
+            opacity={0.7}
           />
         )}
 
@@ -134,7 +142,7 @@ const MapView = ({ start, end, setStart, setEnd, geojson, onStartSelect, onEndSe
         <FitToMarkers start={start} end={end} />
         <DualMarkerHandler {...{ start, end, setStart, setEnd, onStartSelect, onEndSelect }} />
 
-        {/* Markers */}
+        {/* Start marker */}
         {start && (
           <Marker
             position={[start.latitude, start.longitude]}
@@ -152,6 +160,8 @@ const MapView = ({ start, end, setStart, setEnd, geojson, onStartSelect, onEndSe
             </Tooltip>
           </Marker>
         )}
+
+        {/* End marker */}
         {end && (
           <Marker
             position={[end.latitude, end.longitude]}
@@ -171,28 +181,73 @@ const MapView = ({ start, end, setStart, setEnd, geojson, onStartSelect, onEndSe
         )}
 
         {/* Routes */}
-        {geojson?.features?.map((feature, index) => {
-          const risk = getRiskLevel(feature.properties.risk_score);
-          const isMain = index === mainRouteIndex;
+        {geojson?.features?.map((feature) => {
+          const props = feature.properties;
+          const id = props.route_id;
+          const isSelected = id === selectedRouteId;
+          const isRec = props.is_recommended;
+          const score = props.risk_score ?? 0;
+
+          let color, weight, opacity;
+          if (isRec || isSelected) {
+            color  = getRiskColor(score);
+            weight = isRec ? 6 : 5;
+            opacity = 0.9;
+          } else {
+            color  = "#9e9e9e";
+            weight = 2;
+            opacity = 0.4;
+          }
+
           return (
             <GeoJSON
-              key={index}
+              key={`${id}-${selectedRouteId}`}
               data={feature}
-              style={{
-                color: isMain ? RISK_COLORS[risk] : "#555",
-                weight: isMain ? 6 : 4,
-                opacity: isMain ? 0.9 : 0.6,
-              }}
-              onEachFeature={(feature, layer) => {
-                const props = feature.properties;
+              style={{ color, weight, opacity }}
+              onEachFeature={(_, layer) => {
                 layer.bindPopup(`
-                  <b>Route ${props.route_id}</b><br>
-                  Risk Score: ${props.risk_score}<br>
-                  Distance: ${(props.distance / 1000).toFixed(2)} km<br>
-                  Duration: ${(props.duration / 60).toFixed(1)} min
+                  <b>${isRec ? "✓ Recommended — " : ""}Route ${id + 1}</b><br/>
+                  Risk: <b>${(score * 100).toFixed(1)}%</b><br/>
+                  ${props.distance_km != null ? `Distance: <b>${props.distance_km} km</b><br/>` : ""}
+                  ${props.duration_min != null ? `Duration: <b>${props.duration_min} min</b><br/>` : ""}
+                  ${props.incident_count > 0 ? `Incidents: <b>${props.incident_count}</b>` : ""}
                 `);
+                layer.on("click", () => onRouteClick?.(id));
               }}
             />
+          );
+        })}
+
+        {/* Traffic incident markers */}
+        {incidents.map((inc, i) => {
+          const { lat, lon: lng } = inc.geometry
+            ? {
+                lat: inc.geometry.coordinates[1],
+                lon: inc.geometry.coordinates[0],
+              }
+            : { lat: 0, lon: 0 };
+
+          const props = inc.properties ?? {};
+          const color = INCIDENT_COLORS[props.type] ?? "#9e9e9e";
+          const severityRadius = 6 + (props.severity ?? 1) * 2;
+
+          return (
+            <CircleMarker
+              key={i}
+              center={[lat, lng]}
+              radius={severityRadius}
+              pathOptions={{ color, fillColor: color, fillOpacity: 0.8, weight: 1 }}
+            >
+              <Popup>
+                <strong>{props.type?.replace("_", " ") ?? "Incident"}</strong><br />
+                {props.description}<br />
+                {props.start_time && (
+                  <span className="text-xs text-gray-500">
+                    Reported: {new Date(props.start_time).toLocaleTimeString()}
+                  </span>
+                )}
+              </Popup>
+            </CircleMarker>
           );
         })}
       </MapContainer>

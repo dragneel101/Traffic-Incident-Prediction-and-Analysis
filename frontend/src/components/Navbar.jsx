@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const dropdownRef = useRef(null);
-
-  // Check for token in localStorage whenever the route changes.
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
-  }, [location]);
 
   // Close dropdown if clicked outside.
   useEffect(() => {
@@ -28,10 +22,11 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    setIsLoggedIn(false);
+    logout();
     navigate("/login");
   };
+
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   // Public links for non-authenticated users.
   const publicLinks = [
@@ -48,6 +43,12 @@ const Navbar = () => {
     { name: "Route Planner", path: "/route-planner" },
   ];
 
+  const linkClass = ({ isActive }) =>
+    `hover:text-indigo-200 transition ${isActive ? "underline underline-offset-4" : ""}`;
+
+  const mobileLinkClass = ({ isActive }) =>
+    `block hover:text-indigo-200 transition ${isActive ? "underline underline-offset-4" : ""}`;
+
   return (
     <nav className="bg-indigo-600 shadow-md text-white">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -61,32 +62,16 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex space-x-6 items-center">
-          {!isLoggedIn &&
+          {!isAuthenticated &&
             publicLinks.map((link) => (
-              <NavLink
-                key={link.name}
-                to={link.path}
-                className={({ isActive }) =>
-                  `hover:text-indigo-200 transition ${
-                    isActive ? "underline underline-offset-4" : ""
-                  }`
-                }
-              >
+              <NavLink key={link.name} to={link.path} className={linkClass}>
                 {link.name}
               </NavLink>
             ))}
-          {isLoggedIn && (
+          {isAuthenticated && (
             <>
               {privateLinks.map((link) => (
-                <NavLink
-                  key={link.name}
-                  to={link.path}
-                  className={({ isActive }) =>
-                    `hover:text-indigo-200 transition ${
-                      isActive ? "underline underline-offset-4" : ""
-                    }`
-                  }
-                >
+                <NavLink key={link.name} to={link.path} className={linkClass}>
                   {link.name}
                 </NavLink>
               ))}
@@ -94,10 +79,9 @@ const Navbar = () => {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-300 text-gray-700 focus:outline-none"
+                  className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-300 text-gray-700 focus:outline-none font-bold"
                 >
-                  {/* Placeholder Avatar (could be initials or an image) */}
-                  <span className="font-bold">U</span>
+                  {userInitial}
                 </button>
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-md shadow-lg z-20">
@@ -164,33 +148,25 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden px-4 pb-4 space-y-2">
-          {!isLoggedIn &&
+          {!isAuthenticated &&
             publicLinks.map((link) => (
               <NavLink
                 key={link.name}
                 to={link.path}
                 onClick={() => setMenuOpen(false)}
-                className={({ isActive }) =>
-                  `block hover:text-indigo-200 transition ${
-                    isActive ? "underline underline-offset-4" : ""
-                  }`
-                }
+                className={mobileLinkClass}
               >
                 {link.name}
               </NavLink>
             ))}
-          {isLoggedIn && (
+          {isAuthenticated && (
             <>
               {privateLinks.map((link) => (
                 <NavLink
                   key={link.name}
                   to={link.path}
                   onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `block hover:text-indigo-200 transition ${
-                      isActive ? "underline underline-offset-4" : ""
-                    }`
-                  }
+                  className={mobileLinkClass}
                 >
                   {link.name}
                 </NavLink>
