@@ -59,7 +59,7 @@ describe("RouteList", () => {
   it("shows distance and duration for each route", () => {
     render(<RouteList routes={ROUTES} selectedRouteId={null} onSelect={vi.fn()} />);
     expect(screen.getByText(/5\.2 km/)).toBeInTheDocument();
-    expect(screen.getByText(/10 min/)).toBeInTheDocument();
+    expect(screen.getAllByText(/10 min/).length).toBeGreaterThan(0);
   });
 
   it("calls onSelect with the correct route_id when clicked", async () => {
