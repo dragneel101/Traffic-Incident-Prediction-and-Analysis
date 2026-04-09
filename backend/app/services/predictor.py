@@ -2,11 +2,26 @@ import joblib
 import os
 import numpy as np
 import pandas as pd
+from app.logging_config import get_logger
 from app.services.features import extract_features_for_point
 
-# Load the model once at startup
+logger = get_logger(__name__)
+
 MODEL_PATH = os.path.join("app", "models", "collision_risk_model.pkl")
-model = joblib.load(MODEL_PATH)
+_model = None
+
+
+def _get_model():
+    global _model
+    if _model is None:
+        if not os.path.exists(MODEL_PATH):
+            raise RuntimeError(
+                f"Model file not found at {os.path.abspath(MODEL_PATH)}. "
+                "Ensure the S3 download completed successfully before uvicorn started."
+            )
+        logger.info("Loading ML model from %s", MODEL_PATH)
+        _model = joblib.load(MODEL_PATH)
+    return _model
 
 # Must match train_model.py FEATURE_ORDER exactly.
 # congestion_level / jam_factor are intentionally excluded — all historical
@@ -27,7 +42,7 @@ def predict_collision_risk(input_data: dict, jam_factor: float = 0.0) -> float:
     reflect live congestion — up to +40% at maximum congestion.
     """
     features = pd.DataFrame([input_data], columns=FEATURE_ORDER)
-    prob = model.predict_proba(features)[0][1]
+    prob = _get_model().predict_proba(features)[0][1]
     # Congestion multiplier: jam_factor 0 → ×1.0, jam_factor 10 → ×1.4
     congestion_boost = 1.0 + min(jam_factor / 10.0, 1.0) * 0.40
     return round(min(float(prob) * congestion_boost * 100, 100.0), 2)
