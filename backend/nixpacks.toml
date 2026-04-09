@@ -1,5 +1,2 @@
-[phases.setup]
-nixPkgs = ["awscli2"]
-
 [start]
 cmd = "sh start.sh"

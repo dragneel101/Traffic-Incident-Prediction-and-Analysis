@@ -20,3 +20,4 @@ geojson
 alembic
 cachetools
 slowapi
+boto3
