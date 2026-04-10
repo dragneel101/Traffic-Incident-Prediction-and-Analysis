@@ -19,7 +19,10 @@ const AddressSearch = forwardRef(({ label, onSelect }, ref) => {
       setResults([]);
       setShowDropdown(false);
     },
-  }));
+    getValue() {
+      return query || null;
+    },
+  }), [query]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

@@ -52,7 +52,20 @@ client.interceptors.response.use(
 export const getTotalPredictions = () => client.get("/api/stats/total").then((r) => r.data);
 export const getTimeseries = () => client.get("/api/stats/timeseries").then((r) => r.data);
 export const getFrequentLocations = () => client.get("/api/stats/frequent").then((r) => r.data);
-export const getRecentActivity = () => client.get("/api/stats/recent").then((r) => r.data);
+export const getRecentActivity = (limit = 5, offset = 0) =>
+  client.get("/api/stats/recent", { params: { limit, offset } }).then((r) => r.data);
 export const getModelPerformance = () => client.get("/api/stats/model-performance").then((r) => r.data);
+export const getRouteHistory = (limit = 10, offset = 0) =>
+  client.get("/api/stats/history", { params: { limit, offset } }).then((r) => r.data);
+
+// Saved locations
+export const getSavedLocations = () => client.get("/api/saved-locations").then((r) => r.data);
+export const createSavedLocation = (data) => client.post("/api/saved-locations", data).then((r) => r.data);
+export const deleteSavedLocation = (id) => client.delete(`/api/saved-locations/${id}`);
+
+// Route sharing
+export const shareRoute = (data) => client.post("/api/routes/share", data).then((r) => r.data);
+export const getSharedRoute = (token) =>
+  client.get(`/api/routes/share/${token}`).then((r) => r.data);
 
 export default client;

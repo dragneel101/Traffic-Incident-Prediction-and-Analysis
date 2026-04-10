@@ -28,24 +28,53 @@ def get_frequent_locations(db: Session, user_id: int):
     ends = Counter([d.end_address for d in data]).most_common(5)
     return {"most_common_starts": starts, "most_common_ends": ends}
 
-# Returns the 5 most recent predictions with summary messages and timestamps
-def get_recent_predictions(db: Session, user_id: int):
+# Returns the most recent predictions with summary messages and timestamps (paginated)
+def get_recent_predictions(db: Session, user_id: int, limit: int = 5, offset: int = 0):
     logs = (
         db.query(PredictionLog)
-        .filter(PredictionLog.user_id == user_id)  # ✅ user-specific filtering
+        .filter(PredictionLog.user_id == user_id)
         .order_by(PredictionLog.timestamp.desc())
-        .limit(5)
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 
     return [
         {
             "message": (
-                f"📍 From: {log.start_address}\n       "
-                f"➡️ To:   {log.end_address}\n      "
-                f"          🛑 Collision Risk: {float(log.collision_risk):.2f}%"
+                f"From: {log.start_address}\n"
+                f"To:   {log.end_address}\n"
+                f"Collision Risk: {float(log.collision_risk):.2f}%" if log.collision_risk else ""
             ),
             "time": log.timestamp.isoformat()
         }
         for log in logs
     ]
+
+
+# Returns paginated route history with full data for the history page
+def get_route_history(db: Session, user_id: int, limit: int = 10, offset: int = 0):
+    total = db.query(PredictionLog).filter(PredictionLog.user_id == user_id).count()
+    logs = (
+        db.query(PredictionLog)
+        .filter(PredictionLog.user_id == user_id)
+        .order_by(PredictionLog.timestamp.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    items = [
+        {
+            "id": log.id,
+            "start_address": log.start_address,
+            "end_address": log.end_address,
+            "start_location": log.start_location,
+            "end_location": log.end_location,
+            "collision_risk": float(log.collision_risk) if log.collision_risk is not None else None,
+            "congestion_level": log.congestion_level,
+            "incident_count": log.incident_count,
+            "timestamp": log.timestamp.isoformat(),
+        }
+        for log in logs
+    ]
+    return {"total": total, "offset": offset, "limit": limit, "items": items}

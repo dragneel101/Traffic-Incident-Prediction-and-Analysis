@@ -18,6 +18,9 @@ import SignUp from "./pages/SignUp";
 import Profile from "./pages/Profile";
 import ResetRequest from "./pages/ResetRequest";
 import ResetConfirm from "./pages/ResetConfirm";
+import SavedLocations from "./pages/SavedLocations";
+import RouteHistory from "./pages/RouteHistory";
+import SharedRoute from "./pages/SharedRoute";
 
 function App() {
   return (
@@ -62,6 +65,24 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/saved-locations"
+              element={
+                <PrivateRoute>
+                  <SavedLocations />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <PrivateRoute>
+                  <RouteHistory />
+                </PrivateRoute>
+              }
+            />
+            {/* Public shared route viewer */}
+            <Route path="/shared/:token" element={<SharedRoute />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

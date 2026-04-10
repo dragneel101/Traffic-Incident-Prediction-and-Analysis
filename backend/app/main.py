@@ -9,7 +9,7 @@ load_dotenv()
 
 from app.logging_config import setup_logging
 from app.limiter import limiter
-from app.routes import ping, route_risk, auth, user, password_reset, stats, traffic
+from app.routes import ping, route_risk, auth, user, password_reset, stats, traffic, saved_locations, shared_routes, admin
 
 setup_logging()
 
@@ -32,6 +32,9 @@ app.include_router(user.router, prefix="/user", tags=["User"])
 app.include_router(password_reset.router)
 app.include_router(stats.router)
 app.include_router(traffic.router, prefix="/api")
+app.include_router(saved_locations.router)
+app.include_router(shared_routes.router)
+app.include_router(admin.router)
 
 
 @app.get("/")

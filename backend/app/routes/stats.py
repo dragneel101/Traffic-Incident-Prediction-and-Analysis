@@ -2,7 +2,7 @@
 import json
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.services import stats
 from app.database import get_db
@@ -34,10 +34,22 @@ def frequent_locations(
 
 @router.get("/recent")
 def recent_predictions(
+    limit: int = Query(default=5, ge=1, le=50),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    return stats.get_recent_predictions(db, current_user.id)
+    return stats.get_recent_predictions(db, current_user.id, limit=limit, offset=offset)
+
+
+@router.get("/history")
+def route_history(
+    limit: int = Query(default=10, ge=1, le=50),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return stats.get_route_history(db, current_user.id, limit=limit, offset=offset)
 
 
 _METRICS_PATH = os.path.join("app", "models", "model_metrics.json")

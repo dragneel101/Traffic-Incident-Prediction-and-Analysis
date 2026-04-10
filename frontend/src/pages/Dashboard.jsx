@@ -15,7 +15,7 @@ import {
   getModelPerformance,
 } from "../api/client";
 import { getErrorMessage } from "../utils/errorMessages";
-import { Map, User, Activity, Cpu } from "lucide-react";
+import { Map, User, Activity, Cpu, History, Bookmark } from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -138,31 +138,27 @@ const Dashboard = () => {
         )}
 
         {/* Quick links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link
-            to="/route-planner"
-            className="dark-card p-5 flex items-center gap-4 hover:border-blue-500/40 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors duration-200">
-              <Map className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-white font-semibold text-sm">Route Planner</p>
-              <p className="text-gray-500 text-xs mt-0.5">Predict risk for a new route</p>
-            </div>
-          </Link>
-          <Link
-            to="/profile"
-            className="dark-card p-5 flex items-center gap-4 hover:border-blue-500/40 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors duration-200">
-              <User className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-white font-semibold text-sm">Profile</p>
-              <p className="text-gray-500 text-xs mt-0.5">Update your account details</p>
-            </div>
-          </Link>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { to: "/route-planner", Icon: Map,      label: "Route Planner",     sub: "Predict risk for a new route"    },
+            { to: "/history",       Icon: History,  label: "Route History",     sub: "Browse past predictions"         },
+            { to: "/saved-locations", Icon: Bookmark, label: "Saved Locations", sub: "Manage bookmarked addresses"     },
+            { to: "/profile",       Icon: User,     label: "Profile",           sub: "Update your account details"     },
+          ].map(({ to, Icon, label, sub }) => (
+            <Link
+              key={to}
+              to={to}
+              className="dark-card p-5 flex items-center gap-4 hover:border-blue-500/40 transition-all duration-200 group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors duration-200 flex-shrink-0">
+                <Icon className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-white font-semibold text-sm">{label}</p>
+                <p className="text-gray-500 text-xs mt-0.5">{sub}</p>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

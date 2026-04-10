@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthContext";
-import { Menu, X, LayoutDashboard, User, LogOut, Map, ChevronDown } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, LogOut, Map, ChevronDown, History, Bookmark } from "lucide-react";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -132,6 +132,22 @@ const Navbar = () => {
                     Dashboard
                   </NavLink>
                   <NavLink
+                    to="/history"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
+                  >
+                    <History className="w-4 h-4 text-blue-400" />
+                    Route History
+                  </NavLink>
+                  <NavLink
+                    to="/saved-locations"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
+                  >
+                    <Bookmark className="w-4 h-4 text-blue-400" />
+                    Saved Locations
+                  </NavLink>
+                  <NavLink
                     to="/profile"
                     onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
@@ -212,6 +228,22 @@ const Navbar = () => {
               >
                 <LayoutDashboard className="w-4 h-4 text-blue-400" />
                 Dashboard
+              </NavLink>
+              <NavLink
+                to="/history"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
+              >
+                <History className="w-4 h-4 text-blue-400" />
+                Route History
+              </NavLink>
+              <NavLink
+                to="/saved-locations"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
+              >
+                <Bookmark className="w-4 h-4 text-blue-400" />
+                Saved Locations
               </NavLink>
               <NavLink
                 to="/profile"
