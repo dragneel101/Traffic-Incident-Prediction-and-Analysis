@@ -15,6 +15,11 @@ A full-stack web application that predicts collision risk along driving routes u
 - Route sidebar showing risk score, distance, duration, and incident count per route
 - User accounts with JWT auth (access + refresh tokens), password reset via email
 - Dashboard with prediction history, usage stats, and frequent locations
+- Saved locations (bookmarks, max 20/user)
+- Shareable route links with 7-day public tokens
+- Route history page with past predictions
+- About page and 404 handler
+- Admin endpoint to retrain the ML model (`POST /api/admin/retrain`, `X-Admin-Key` header)
 - Rate limiting, structured JSON logging, and database-backed prediction logs
 
 ---
@@ -40,8 +45,8 @@ A full-stack web application that predicts collision risk along driving routes u
 ├── backend/
 │   ├── app/
 │   │   ├── auth/           # JWT handler, dependencies, utils
-│   │   ├── models/         # SQLAlchemy models (User, PredictionLog, RefreshToken)
-│   │   ├── routes/         # API routers (auth, route_risk, stats, traffic, user, ...)
+│   │   ├── models/         # SQLAlchemy models (User, PredictionLog, RefreshToken, SavedLocation, SharedRoute)
+│   │   ├── routes/         # API routers (auth, route_risk, stats, traffic, user, saved_locations, shared_routes, admin, ...)
 │   │   ├── services/       # Weather, routing, geocoding, traffic, predictor, features
 │   │   ├── tests/          # pytest integration tests
 │   │   ├── cache.py        # TTLCache instances
@@ -62,7 +67,7 @@ A full-stack web application that predicts collision risk along driving routes u
     │   ├── api/            # Axios client + predict/traffic helpers
     │   ├── components/     # MapView, RoutePlanner, RouteList, Navbar, ...
     │   ├── context/        # AuthContext (token memory + silent refresh)
-    │   ├── pages/          # Dashboard, LandingPage, Login, SignUp, Profile, ...
+    │   ├── pages/          # Dashboard, LandingPage, Login, SignUp, Profile, SavedLocations, RouteHistory, SharedRoute, About, ...
     │   └── utils/          # Error message helpers
     ├── package.json
     └── vite.config.js
@@ -135,6 +140,7 @@ cd frontend && npm test
 | `MAIL_FROM` | Sender address |
 | `MAIL_SERVER` | SMTP host |
 | `MAIL_PORT` | SMTP port |
+| `ADMIN_KEY` | Secret key for `POST /api/admin/retrain` (`X-Admin-Key` header) |
 
 ### Frontend (`.env`)
 
