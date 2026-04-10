@@ -2,18 +2,25 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthContext";
+import { Menu, X, LayoutDashboard, User, LogOut, Map, ChevronDown } from "lucide-react";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
-  // Close dropdown if clicked outside.
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
     };
@@ -24,19 +31,18 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
     navigate("/login");
+    setDropdownOpen(false);
+    setMenuOpen(false);
   };
 
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+  const userName = user?.name || "Account";
 
-  // Public links for non-authenticated users.
   const publicLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
-    { name: "Login", path: "/login" },
-    { name: "Sign Up", path: "/signup" },
   ];
 
-  // Private links for authenticated users.
   const privateLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
@@ -44,155 +50,183 @@ const Navbar = () => {
   ];
 
   const linkClass = ({ isActive }) =>
-    `hover:text-indigo-200 transition ${isActive ? "underline underline-offset-4" : ""}`;
-
-  const mobileLinkClass = ({ isActive }) =>
-    `block hover:text-indigo-200 transition ${isActive ? "underline underline-offset-4" : ""}`;
+    `text-sm font-medium transition-colors duration-200 cursor-pointer ${
+      isActive
+        ? "text-blue-400"
+        : "text-gray-400 hover:text-gray-100"
+    }`;
 
   return (
-    <nav className="bg-indigo-600 shadow-md text-white">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo & Brand */}
-        <div className="flex items-center space-x-2">
-          <img src={logo} alt="Logo" className="h-8 w-8 rounded-full" />
-          <NavLink to="/" className="text-xl font-bold">
-            Collision Predictor
-          </NavLink>
-        </div>
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-gray-900/95 backdrop-blur-md border-b border-gray-800 shadow-lg"
+          : "bg-gray-900/80 backdrop-blur-sm"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+        {/* Logo */}
+        <NavLink to="/" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-blue-500/30 group-hover:ring-blue-500/60 transition-all duration-200">
+            <img src={logo} alt="TIPA Logo" className="w-full h-full object-cover" />
+          </div>
+          <span className="text-white font-bold text-base tracking-tight">
+            Collision<span className="text-blue-400">Predictor</span>
+          </span>
+        </NavLink>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex space-x-6 items-center">
-          {!isAuthenticated &&
-            publicLinks.map((link) => (
-              <NavLink key={link.name} to={link.path} className={linkClass}>
-                {link.name}
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-7">
+          {(!isAuthenticated ? publicLinks : privateLinks).map((link) => (
+            <NavLink key={link.name} to={link.path} className={linkClass}>
+              {link.name}
+            </NavLink>
+          ))}
+
+          {!isAuthenticated && (
+            <div className="flex items-center gap-3 ml-2">
+              <NavLink
+                to="/login"
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer"
+              >
+                Log in
               </NavLink>
-            ))}
+              <NavLink
+                to="/signup"
+                className="btn-primary text-sm px-4 py-2"
+              >
+                Sign up
+              </NavLink>
+            </div>
+          )}
+
           {isAuthenticated && (
-            <>
-              {privateLinks.map((link) => (
-                <NavLink key={link.name} to={link.path} className={linkClass}>
-                  {link.name}
-                </NavLink>
-              ))}
-              {/* Avatar Dropdown */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-300 text-gray-700 focus:outline-none font-bold"
-                >
+            <div className="relative ml-2" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 cursor-pointer group"
+                aria-label="User menu"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-sm font-bold ring-2 ring-blue-500/30 group-hover:ring-blue-500/60 transition-all duration-200">
                   {userInitial}
-                </button>
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-md shadow-lg z-20">
-                    <NavLink
-                      to="/dashboard"
-                      onClick={() => setDropdownOpen(false)}
-                      className="block px-4 py-2 hover:bg-indigo-600 hover:text-white"
-                    >
-                      Dashboard
-                    </NavLink>
-                    <NavLink
-                      to="/profile"
-                      onClick={() => setDropdownOpen(false)}
-                      className="block px-4 py-2 hover:bg-indigo-600 hover:text-white"
-                    >
-                      Profile
-                    </NavLink>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                    dropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-52 dark-card py-1 animate-fade-in">
+                  <div className="px-4 py-2.5 border-b border-gray-800">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Signed in as</p>
+                    <p className="text-sm text-white font-semibold truncate mt-0.5">{userName}</p>
+                  </div>
+                  <NavLink
+                    to="/dashboard"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-blue-400" />
+                    Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/profile"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
+                  >
+                    <User className="w-4 h-4 text-blue-400" />
+                    Profile
+                  </NavLink>
+                  <div className="border-t border-gray-800 mt-1 pt-1">
                     <button
-                      onClick={() => {
-                        handleLogout();
-                        setDropdownOpen(false);
-                      }}
-                      className="w-full text-left block px-4 py-2 hover:bg-indigo-600 hover:text-white"
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:text-red-400 hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
                     >
-                      Sign Out
+                      <LogOut className="w-4 h-4" />
+                      Sign out
                     </button>
                   </div>
-                )}
-              </div>
-            </>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <div className="md:hidden">
-          <button onClick={() => setMenuOpen(!menuOpen)} className="focus:outline-none">
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {menuOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              )}
-            </svg>
-          </button>
-        </div>
+        {/* Mobile toggle */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="md:hidden text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer p-1"
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
       </div>
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden px-4 pb-4 space-y-2">
-          {!isAuthenticated &&
-            publicLinks.map((link) => (
+        <div className="md:hidden bg-gray-900 border-t border-gray-800 px-4 py-3 space-y-1 animate-slide-up">
+          {(!isAuthenticated ? publicLinks : privateLinks).map((link) => (
+            <NavLink
+              key={link.name}
+              to={link.path}
+              onClick={() => setMenuOpen(false)}
+              className={({ isActive }) =>
+                `block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 cursor-pointer ${
+                  isActive
+                    ? "bg-blue-500/10 text-blue-400"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800"
+                }`
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
+
+          {!isAuthenticated && (
+            <>
               <NavLink
-                key={link.name}
-                to={link.path}
+                to="/login"
                 onClick={() => setMenuOpen(false)}
-                className={mobileLinkClass}
+                className="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
               >
-                {link.name}
+                Log in
               </NavLink>
-            ))}
+              <NavLink
+                to="/signup"
+                onClick={() => setMenuOpen(false)}
+                className="block px-3 py-2.5 rounded-lg text-sm font-bold text-center btn-primary mt-2"
+              >
+                Sign up
+              </NavLink>
+            </>
+          )}
+
           {isAuthenticated && (
             <>
-              {privateLinks.map((link) => (
-                <NavLink
-                  key={link.name}
-                  to={link.path}
-                  onClick={() => setMenuOpen(false)}
-                  className={mobileLinkClass}
-                >
-                  {link.name}
-                </NavLink>
-              ))}
               <NavLink
                 to="/dashboard"
                 onClick={() => setMenuOpen(false)}
-                className="block hover:text-indigo-200 transition"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
               >
+                <LayoutDashboard className="w-4 h-4 text-blue-400" />
                 Dashboard
               </NavLink>
               <NavLink
                 to="/profile"
                 onClick={() => setMenuOpen(false)}
-                className="block hover:text-indigo-200 transition"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
               >
+                <User className="w-4 h-4 text-blue-400" />
                 Profile
               </NavLink>
               <button
-                onClick={() => {
-                  handleLogout();
-                  setMenuOpen(false);
-                }}
-                className="block hover:text-indigo-200 transition"
+                onClick={handleLogout}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors duration-150 cursor-pointer"
               >
-                Sign Out
+                <LogOut className="w-4 h-4" />
+                Sign out
               </button>
             </>
           )}

@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../api/client";
 import { getErrorMessage } from "../utils/errorMessages";
+import { Mail, ArrowRight, CheckCircle } from "lucide-react";
 
 function ResetRequest() {
   const [email, setEmail] = useState("");
@@ -23,38 +25,77 @@ function ResetRequest() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="max-w-md w-full bg-white shadow-md rounded-lg p-8">
-        <h2 className="text-2xl font-bold text-indigo-700 mb-6 text-center">Reset Password</h2>
+    <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-12">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-blue-600/8 rounded-full blur-3xl" />
+      </div>
 
-        {sent ? (
-          <p className="text-green-700 text-center">
-            If an account with that email exists, a reset link has been sent.
+      <div className="w-full max-w-sm relative animate-slide-up">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-white">Reset your password</h1>
+          <p className="text-gray-500 text-sm mt-1.5">
+            Enter your email and we&apos;ll send a reset link
           </p>
-        ) : (
-          <form onSubmit={handleRequest} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="Enter your email"
-                className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+        </div>
+
+        <div className="dark-card p-7">
+          {sent ? (
+            <div className="text-center py-4">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-7 h-7 text-emerald-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-2">Check your inbox</h3>
+              <p className="text-gray-500 text-sm">
+                If an account exists for that email, a reset link has been sent.
+              </p>
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white font-semibold py-2 rounded hover:bg-indigo-700 transition disabled:opacity-60"
-            >
-              {loading ? "Sending..." : "Send Reset Email"}
-            </button>
-          </form>
-        )}
+          ) : (
+            <form onSubmit={handleRequest} className="space-y-5">
+              <div>
+                <label htmlFor="email" className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="you@example.com"
+                    className="dark-input pl-10"
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    Send Reset Email
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+
+        <p className="text-center text-sm text-gray-500 mt-5">
+          Remembered it?{" "}
+          <NavLink to="/login" className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-150 cursor-pointer">
+            Sign in
+          </NavLink>
+        </p>
       </div>
     </div>
   );

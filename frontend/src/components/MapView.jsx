@@ -191,32 +191,32 @@ const MapView = ({
   const selProps = selectedFeature?.properties;
 
   return (
-    <div className="relative rounded-xl shadow-lg border border-gray-200 overflow-hidden bg-gray-100"
+    <div className="relative rounded-2xl overflow-hidden border border-gray-700/50 shadow-card"
          style={{ height: "600px" }}>
 
       {/* ── Traffic info strip (Google Maps style) ─────────────────────── */}
       {selProps && (
         <div className="absolute top-3 left-3 right-14 z-[999] pointer-events-none">
-          <div className="inline-flex items-center gap-3 bg-white/97 backdrop-blur-md
+          <div className="inline-flex items-center gap-3 bg-gray-900/95 backdrop-blur-md border border-gray-700/50
                           rounded-xl shadow-lg px-4 py-2.5 text-sm pointer-events-auto">
             {/* Travel time */}
             <div>
-              <span className="text-xl font-bold text-gray-900">
+              <span className="text-xl font-bold text-white">
                 {formatMin(adjustedMin(selProps.duration_min, selProps.congestion_level))}
               </span>
               {selProps.congestion_level > 0.05 && (
-                <span className="ml-1.5 text-xs text-gray-400 font-normal">
+                <span className="ml-1.5 text-xs text-gray-500 font-normal">
                   ({formatMin(Math.round(selProps.duration_min))} without traffic)
                 </span>
               )}
             </div>
 
-            <span className="text-gray-300">|</span>
+            <span className="text-gray-700">|</span>
 
             {/* Distance */}
-            <span className="text-gray-600 font-medium">{selProps.distance_km} km</span>
+            <span className="text-gray-300 font-medium">{selProps.distance_km} km</span>
 
-            <span className="text-gray-300">|</span>
+            <span className="text-gray-700">|</span>
 
             {/* Traffic condition */}
             <div className="flex items-center gap-1.5">
@@ -235,8 +235,8 @@ const MapView = ({
             {/* Incident count */}
             {selProps.incident_count > 0 && (
               <>
-                <span className="text-gray-300">|</span>
-                <span className="text-xs font-semibold text-red-600">
+                <span className="text-gray-700">|</span>
+                <span className="text-xs font-semibold text-red-400">
                   ⚠ {selProps.incident_count} incident{selProps.incident_count !== 1 ? "s" : ""}
                 </span>
               </>
@@ -317,16 +317,16 @@ const MapView = ({
 
                   // Click popup
                   layer.bindPopup(`
-                    <div style="min-width:160px;font-family:-apple-system,sans-serif">
-                      <div style="font-weight:700;font-size:14px;margin-bottom:6px">
-                        ${isRec ? '<span style="color:#1d4ed8">✓ Recommended</span> · ' : ""}Route ${id + 1}
+                    <div style="min-width:180px;font-family:Inter,-apple-system,sans-serif">
+                      <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#F9FAFB">
+                        ${isRec ? '<span style="color:#60A5FA;font-size:11px;margin-right:4px">✓ Recommended</span>' : ""}Route ${id + 1}
                       </div>
-                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;color:#374151">
-                        <span>⏱ ${formatMin(adjustedMin(props.duration_min, cong))}</span>
-                        <span>📍 ${props.distance_km} km</span>
-                        <span style="color:${getRiskColor(score)}">● Risk ${(score * 100).toFixed(0)}%</span>
-                        <span style="color:${getCongestionColor(cong)}">● ${getCongestionLabel(cong)}</span>
-                        ${props.incident_count > 0 ? `<span style="color:#dc2626;grid-column:span 2">⚠ ${props.incident_count} incident${props.incident_count !== 1 ? "s" : ""}</span>` : ""}
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;font-size:11px;color:#9CA3AF">
+                        <span>${formatMin(adjustedMin(props.duration_min, cong))}</span>
+                        <span>${props.distance_km} km</span>
+                        <span style="color:${getRiskColor(score)}">Risk ${(score * 100).toFixed(0)}%</span>
+                        <span style="color:${getCongestionColor(cong)}">${getCongestionLabel(cong)}</span>
+                        ${props.incident_count > 0 ? `<span style="color:#F87171;grid-column:span 2">${props.incident_count} incident${props.incident_count !== 1 ? "s" : ""}</span>` : ""}
                       </div>
                     </div>
                   `);
@@ -452,9 +452,9 @@ const MapView = ({
 
       {/* ── Incident legend overlay ── */}
       {incidents.length > 0 && (
-        <div className="absolute bottom-8 left-3 z-[999] bg-white/95 backdrop-blur-sm
-                        rounded-xl shadow-lg px-3 py-2 text-xs space-y-1.5">
-          <p className="font-semibold text-gray-500 uppercase tracking-wide text-[10px] mb-1">
+        <div className="absolute bottom-8 left-3 z-[999] bg-gray-900/95 backdrop-blur-sm border border-gray-700/50
+                        rounded-xl shadow-lg px-3 py-2.5 text-xs space-y-1.5">
+          <p className="font-semibold text-gray-500 uppercase tracking-wide text-[10px] mb-1.5">
             Live Traffic
           </p>
           {Object.entries(INCIDENT_META).map(([type, meta]) => {
@@ -464,9 +464,9 @@ const MapView = ({
             if (!count) return null;
             return (
               <div key={type} className="flex items-center gap-2">
-                <span className="text-base leading-none">{meta.icon}</span>
-                <span className="text-gray-700">{meta.label}</span>
-                <span className="ml-auto font-semibold" style={{ color: meta.color }}>
+                <span className="text-sm leading-none">{meta.icon}</span>
+                <span className="text-gray-300">{meta.label}</span>
+                <span className="ml-auto font-bold font-mono" style={{ color: meta.color }}>
                   {count}
                 </span>
               </div>
@@ -477,21 +477,21 @@ const MapView = ({
 
       {/* ── Risk legend ── */}
       {hasRoutes && (
-        <div className="absolute bottom-8 right-3 z-[999] bg-white/95 backdrop-blur-sm
-                        rounded-xl shadow-lg px-3 py-2 text-xs space-y-1.5">
-          <p className="font-semibold text-gray-500 uppercase tracking-wide text-[10px] mb-1">
+        <div className="absolute bottom-8 right-3 z-[999] bg-gray-900/95 backdrop-blur-sm border border-gray-700/50
+                        rounded-xl shadow-lg px-3 py-2.5 text-xs space-y-1.5">
+          <p className="font-semibold text-gray-500 uppercase tracking-wide text-[10px] mb-1.5">
             Risk Level
           </p>
           {[
-            { color: "#16a34a", label: "Low",    hint: "< 30%" },
-            { color: "#ea580c", label: "Moderate", hint: "30–60%" },
-            { color: "#dc2626", label: "High",   hint: "> 60%" },
+            { color: "#10B981", label: "Low",      hint: "< 30%" },
+            { color: "#F59E0B", label: "Moderate", hint: "30–60%" },
+            { color: "#EF4444", label: "High",     hint: "> 60%" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-2">
               <span className="w-3 h-1.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: item.color }} />
-              <span className="text-gray-700">{item.label}</span>
-              <span className="ml-auto text-gray-400">{item.hint}</span>
+              <span className="text-gray-300">{item.label}</span>
+              <span className="ml-auto text-gray-600">{item.hint}</span>
             </div>
           ))}
         </div>

@@ -25,7 +25,11 @@ function App() {
       <Router>
         <AuthProvider>
           <Navbar />
-          <ToastContainer position="top-right" autoClose={3000} />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            toastClassName="!font-sans"
+          />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/about" element={<About />} />

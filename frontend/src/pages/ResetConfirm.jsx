@@ -3,9 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../api/client";
 import { getErrorMessage } from "../utils/errorMessages";
+import { Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 
 function ResetConfirm() {
   const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,10 +22,7 @@ function ResetConfirm() {
     }
     setLoading(true);
     try {
-      await api.post("/password-reset/confirm", {
-        token,
-        new_password: newPassword,
-      });
+      await api.post("/password-reset/confirm", { token, new_password: newPassword });
       toast.success("Password reset successful. You can now log in.");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
@@ -34,30 +33,64 @@ function ResetConfirm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="max-w-md w-full bg-white shadow-md rounded-lg p-8">
-        <h2 className="text-2xl font-bold text-indigo-700 mb-6 text-center">Set New Password</h2>
+    <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-12">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-blue-600/8 rounded-full blur-3xl" />
+      </div>
 
-        <form onSubmit={handleConfirm} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              placeholder="Enter your new password"
-              className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white font-semibold py-2 rounded hover:bg-indigo-700 transition disabled:opacity-60"
-          >
-            {loading ? "Resetting..." : "Reset Password"}
-          </button>
-        </form>
+      <div className="w-full max-w-sm relative animate-slide-up">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-white">Set new password</h1>
+          <p className="text-gray-500 text-sm mt-1.5">Choose a strong password for your account</p>
+        </div>
+
+        <div className="dark-card p-7">
+          <form onSubmit={handleConfirm} className="space-y-5">
+            <div>
+              <label htmlFor="new-password" className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                New Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                <input
+                  id="new-password"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  placeholder="Enter new password"
+                  className="dark-input pl-10 pr-10"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors duration-150 cursor-pointer"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  Reset Password
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

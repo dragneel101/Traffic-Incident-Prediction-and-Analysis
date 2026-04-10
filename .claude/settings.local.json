@@ -11,7 +11,10 @@
       "Bash(coderabbit auth:*)",
       "Bash(winget --version)",
       "Bash(choco --version)",
-      "Bash(scoop --version)"
+      "Bash(scoop --version)",
+      "Bash(python \"C:\\\\Users\\\\raish\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"animation accessibility loading states\" --domain ux)",
+      "Bash(python \"C:\\\\Users\\\\raish\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"layout responsive dashboard\" --stack react)",
+      "Bash(npm run:*)"
     ]
   },
   "disabledMcpjsonServers": [
