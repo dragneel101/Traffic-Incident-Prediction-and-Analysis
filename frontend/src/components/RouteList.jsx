@@ -66,7 +66,7 @@ export default function RouteList({ routes, selectedRouteId, onSelect }) {
             onClick={() => onSelect(id)}
             className={`w-full text-left rounded-xl border transition-all duration-200 overflow-hidden cursor-pointer ${
               isSelected
-                ? "border-blue-500/60 bg-gray-800/80 shadow-glow-blue"
+                ? "border-blue-500 bg-gray-800/80 shadow-glow-blue"
                 : "border-gray-700/50 bg-gray-900 hover:border-gray-600 hover:bg-gray-800/60"
             }`}
           >

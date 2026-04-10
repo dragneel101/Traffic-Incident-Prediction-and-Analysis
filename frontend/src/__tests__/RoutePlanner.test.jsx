@@ -132,7 +132,7 @@ describe("RoutePlanner", () => {
     await userEvent.click(screen.getByText("Select End"));
     await userEvent.click(screen.getByRole("button", { name: /predict/i }));
 
-    expect(screen.getByText(/calculating/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/calculating/i).length).toBeGreaterThan(0);
   });
 
   it("shows error toast on prediction failure", async () => {

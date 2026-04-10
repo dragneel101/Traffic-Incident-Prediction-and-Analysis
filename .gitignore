@@ -54,8 +54,9 @@ node_modules/
 backend/data/processed/toronto_cleaned.csv
 backend/data/processed/toronto_cleaned.csv
 
+# Claude / Claude Code
 CLAUDE.md
 .mcp.json
-.claude/settings.local.json
-*.claude/
+.claude/
 .claudeignore
+design-system/
