@@ -57,5 +57,5 @@ backend/data/processed/toronto_cleaned.csv
 CLAUDE.md
 .mcp.json
 .claude/settings.local.json
-*.claude
+*.claude/
 .claudeignore
